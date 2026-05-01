@@ -154,7 +154,7 @@ export interface Alert {
   threshold?: number;
 }
 
-export type NavPage = 'dashboard' | 'repair' | 'overlay' | 'hardware' | 'software' | 'apps' | 'conflicts' | 'updates' | 'alerts' | 'health' | 'ai' | 'settings' | 'startup' | 'network' | 'temperatures' | 'process' | 'system' | 'benchmark' | 'scheduler' | 'firewall' | 'usb' | 'diskcleanup' | 'security' | 'clipboard' | 'drivers' | 'services' | 'eventlog' | 'battery' | 'perflog' | 'registry' | 'netconn' | 'filetypes' | 'display' | 'power' | 'restore' | 'filescanner' | 'remote' | 'report' | 'memory' | 'features' | 'sounds' | 'fonts';
+export type NavPage = 'dashboard' | 'repair' | 'overlay' | 'hardware' | 'software' | 'apps' | 'conflicts' | 'updates' | 'alerts' | 'health' | 'ai' | 'settings' | 'startup' | 'network' | 'temperatures' | 'process' | 'system' | 'benchmark' | 'scheduler' | 'firewall' | 'usb' | 'diskcleanup' | 'security' | 'clipboard' | 'drivers' | 'services' | 'eventlog' | 'battery' | 'perflog' | 'registry' | 'netconn' | 'filetypes' | 'display' | 'power' | 'restore' | 'filescanner' | 'remote' | 'report' | 'memory' | 'features' | 'sounds' | 'fonts' | 'accounts';
 
 export interface StartupEntry {
   name: string;
@@ -325,4 +325,43 @@ export interface ScheduledTask {
   created: string;
   description: string;
   actions: string[];
+}
+
+export interface LocalUser {
+  name: string;
+  fullName: string;
+  description: string;
+  sid: string;
+  enabled: boolean;
+  passwordAge: number;
+  lastLogon: string;
+  groups: string[];
+  isAdmin: boolean;
+  accountType: 'administrator' | 'standard' | 'guest';
+}
+
+export interface LocalGroup {
+  name: string;
+  description: string;
+  sid: string;
+  memberCount: number;
+  members: string[];
+}
+
+export interface UacSettings {
+  level: number;
+  levelLabel: string;
+  adminApprovalMode: boolean;
+  secureDesktop: boolean;
+  installerDetection: boolean;
+  virtualization: boolean;
+}
+
+export interface CredentialEntry {
+  targetName: string;
+  type: 'generic' | 'domain' | 'certificate' | 'generic_certificate';
+  persistence: 'session' | 'local_machine' | 'enterprise';
+  userName: string;
+  lastModified: string;
+  comment: string;
 }

@@ -1,4 +1,4 @@
-import type { HardwareSnapshot, SoftwareEntry, ConflictReport, AppEntry, UninstallResult, UpdateScanResult, Alert, HealthScore, StartupEntry, StartupImpact, NetworkInterface, NetworkTraffic, SpeedTestResult, ProcessEntry, SystemInfo, BenchmarkResult, ScheduledTask } from '../utils/types';
+import type { HardwareSnapshot, SoftwareEntry, ConflictReport, AppEntry, UninstallResult, UpdateScanResult, Alert, HealthScore, StartupEntry, StartupImpact, NetworkInterface, NetworkTraffic, SpeedTestResult, ProcessEntry, SystemInfo, BenchmarkResult, ScheduledTask, LocalUser, LocalGroup, UacSettings, CredentialEntry } from '../utils/types';
 import type { FirewallRule } from '../../electron/firewall/reader';
 import type { UsbDevice, UsbHistoryEntry } from '../../electron/usb/manager';
 import type { DiskCategory, LargeFile, TempFileCategory } from '../../electron/disk/analyzer';
@@ -375,6 +375,15 @@ declare global {
       updateOverlayConfig: (config: OverlayConfigPartial) => Promise<void>;
       getOverlayStatus: () => Promise<{ active: boolean; config: OverlayConfigFull }>;
       getOverlayMetrics: () => Promise<OverlayMetricsData | null>;
+
+      // User Accounts
+      listLocalUsers: () => Promise<LocalUser[]>;
+      listLocalGroups: () => Promise<LocalGroup[]>;
+      getUserDetail: (name: string) => Promise<LocalUser | null>;
+      getGroupDetail: (name: string) => Promise<LocalGroup | null>;
+      getUacSettings: () => Promise<UacSettings>;
+      listCredentials: () => Promise<CredentialEntry[]>;
+      removeCredential: (targetName: string) => Promise<boolean>;
     };
   }
 

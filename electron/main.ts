@@ -43,6 +43,9 @@ import { BluescreenAnalyzer } from './repair/bluescreen';
 import { runSfcScan, runDismRestore } from './repair/sfc';
 import { OverlayManager } from './overlay/overlayManager';
 import { OverlayDataCollector } from './overlay/dataCollector';
+import { UserManager } from './accounts/userManager';
+import { UacManager } from './accounts/uacManager';
+import { CredentialManager } from './accounts/credentialManager';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -85,6 +88,9 @@ const repairEngine = new RepairEngine();
 const bluescreenAnalyzer = new BluescreenAnalyzer();
 const overlayManager = new OverlayManager();
 const overlayCollector = new OverlayDataCollector();
+const userManager = new UserManager();
+const uacManager = new UacManager();
+const credentialManager = new CredentialManager();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -1106,6 +1112,37 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('pchelper:overlay-get-metrics', () =>
     overlayManager.getMetrics()
+  );
+
+  // User Accounts
+  ipcMain.handle('pchelper:accounts-list-users', () =>
+    userManager.listUsers()
+  );
+
+  ipcMain.handle('pchelper:accounts-list-groups', () =>
+    userManager.listGroups()
+  );
+
+  ipcMain.handle('pchelper:accounts-get-user-detail', (_event, name: string) =>
+    userManager.getUserDetail(name)
+  );
+
+  ipcMain.handle('pchelper:accounts-get-group-detail', (_event, name: string) =>
+    userManager.getGroupDetail(name)
+  );
+
+  // UAC Settings
+  ipcMain.handle('pchelper:accounts-get-uac-settings', () =>
+    uacManager.getSettings()
+  );
+
+  // Credentials
+  ipcMain.handle('pchelper:accounts-list-credentials', () =>
+    credentialManager.listCredentials()
+  );
+
+  ipcMain.handle('pchelper:accounts-remove-credential', (_event, targetName: string) =>
+    credentialManager.removeCredential(targetName)
   );
 
   // Settings management

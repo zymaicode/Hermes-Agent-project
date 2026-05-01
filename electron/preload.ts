@@ -341,4 +341,20 @@ contextBridge.exposeInMainWorld('pchelper', {
     ipcRenderer.invoke('pchelper:overlay-get-status'),
   getOverlayMetrics: () =>
     ipcRenderer.invoke('pchelper:overlay-get-metrics'),
+
+  // User Accounts
+  listLocalUsers: () =>
+    ipcRenderer.invoke('pchelper:accounts-list-users'),
+  listLocalGroups: () =>
+    ipcRenderer.invoke('pchelper:accounts-list-groups'),
+  getUserDetail: (name: string) =>
+    ipcRenderer.invoke('pchelper:accounts-get-user-detail', name),
+  getGroupDetail: (name: string) =>
+    ipcRenderer.invoke('pchelper:accounts-get-group-detail', name),
+  getUacSettings: () =>
+    ipcRenderer.invoke('pchelper:accounts-get-uac-settings'),
+  listCredentials: () =>
+    ipcRenderer.invoke('pchelper:accounts-list-credentials'),
+  removeCredential: (targetName: string) =>
+    ipcRenderer.invoke('pchelper:accounts-remove-credential', targetName),
 });

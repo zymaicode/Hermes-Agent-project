@@ -38,6 +38,7 @@ import {
   Volume2,
   Type,
   Eye,
+  UserCircle,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { useConflictStore } from '../../stores/conflictStore';
@@ -90,6 +91,7 @@ const navSections: { heading: string; items: NavItem[] }[] = [
       { id: 'firewall', label: 'Firewall', icon: Shield },
       { id: 'security', label: 'Security', icon: ShieldCheck },
       { id: 'usb', label: 'USB Devices', icon: Usb },
+      { id: 'accounts', label: 'Accounts', icon: UserCircle },
     ],
   },
   {

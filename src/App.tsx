@@ -41,6 +41,7 @@ import MemoryView from './components/MemoryView';
 import FeaturesView from './components/FeaturesView';
 import SoundView from './components/SoundView';
 import FontView from './components/FontView';
+import AccountsView from './components/AccountsView';
 import RepairCenter from './components/RepairCenter';
 import PerfOverlay from './components/PerfOverlay';
 import TitleBar from './components/TitleBar';
@@ -135,6 +136,8 @@ function MainContent() {
       return <SoundView />;
     case 'fonts':
       return <FontView />;
+    case 'accounts':
+      return <AccountsView />;
     default:
       return <Dashboard />;
   }
