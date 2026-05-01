@@ -82,7 +82,7 @@ const navSections: { heading: string; items: NavItem[] }[] = [
     items: [
       { id: 'benchmark', label: 'Benchmark', icon: Gauge },
       { id: 'registry', label: 'Registry', icon: Search },
-      { id: 'diskcleanup', label: 'Disk Cleanup', icon: Trash2 },
+      { id: 'cleanup', label: 'Cleanup', icon: Trash2 },
       { id: 'filetypes', label: 'File Types', icon: FileType },
       { id: 'netdiag', label: 'Net Diag', icon: Network },
     ],

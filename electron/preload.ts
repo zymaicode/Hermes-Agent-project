@@ -151,11 +151,35 @@ contextBridge.exposeInMainWorld('pchelper', {
   getUsbHistory: () => ipcRenderer.invoke('pchelper:get-usb-history'),
   ejectUsbDevice: (serialNumber: string) => ipcRenderer.invoke('pchelper:eject-usb-device', serialNumber),
 
-  // Disk Cleanup
+  // Disk Cleanup (legacy)
   getDiskSpace: (drive: string) => ipcRenderer.invoke('pchelper:get-disk-space', drive),
   getLargeFiles: (drive: string, limit?: number) => ipcRenderer.invoke('pchelper:get-large-files', drive, limit),
   getTempFiles: () => ipcRenderer.invoke('pchelper:get-temp-files'),
   cleanTempFiles: (categories: string[]) => ipcRenderer.invoke('pchelper:clean-temp-files', categories),
+
+  // Cleanup - Temp & System
+  scanTempFiles: () => ipcRenderer.invoke('pchelper:cleanup-scan-temp'),
+  cleanTempFilesAdv: (categories: string[]) => ipcRenderer.invoke('pchelper:cleanup-clean-temp', categories),
+  scanBrowserCaches: () => ipcRenderer.invoke('pchelper:cleanup-scan-browsers'),
+  cleanBrowserCache: (browser: string) => ipcRenderer.invoke('pchelper:cleanup-clean-browser', browser),
+  scanSystemCleanup: () => ipcRenderer.invoke('pchelper:cleanup-scan-system'),
+  cleanSystem: (categories: string[]) => ipcRenderer.invoke('pchelper:cleanup-clean-system', categories),
+
+  // Cleanup - Large Files & Duplicates
+  scanLargeFiles: (minSizeMB?: number, scanPath?: string) =>
+    ipcRenderer.invoke('pchelper:cleanup-scan-large-files', minSizeMB, scanPath),
+  scanDuplicates: (paths?: string[]) =>
+    ipcRenderer.invoke('pchelper:cleanup-scan-duplicates', paths),
+  onLargeFilesProgress: (callback: (data: { pct: number; current: string }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { pct: number; current: string }) => callback(data);
+    ipcRenderer.on('pchelper:cleanup-large-files-progress', handler);
+    return () => { ipcRenderer.removeListener('pchelper:cleanup-large-files-progress', handler); };
+  },
+  onDuplicatesProgress: (callback: (data: { pct: number }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { pct: number }) => callback(data);
+    ipcRenderer.on('pchelper:cleanup-duplicates-progress', handler);
+    return () => { ipcRenderer.removeListener('pchelper:cleanup-duplicates-progress', handler); };
+  },
 
   // Security
   getSecurityStatus: () => ipcRenderer.invoke('pchelper:get-security-status'),

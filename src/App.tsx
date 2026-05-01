@@ -20,7 +20,7 @@ import BenchmarkView from './components/BenchmarkView';
 import SchedulerView from './components/SchedulerView';
 import FirewallView from './components/FirewallView';
 import UsbView from './components/UsbView';
-import DiskCleanupView from './components/DiskCleanupView';
+import CleanupView from './components/CleanupView';
 import SecurityView from './components/SecurityView';
 import ClipboardView from './components/ClipboardView';
 import DriversView from './components/DriversView';
@@ -95,8 +95,8 @@ function MainContent() {
       return <FirewallView />;
     case 'usb':
       return <UsbView />;
-    case 'diskcleanup':
-      return <DiskCleanupView />;
+    case 'cleanup':
+      return <CleanupView />;
     case 'security':
       return <SecurityView />;
     case 'clipboard':

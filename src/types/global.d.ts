@@ -2,6 +2,11 @@ import type { HardwareSnapshot, SoftwareEntry, ConflictReport, AppEntry, Uninsta
 import type { FirewallRule } from '../../electron/firewall/reader';
 import type { UsbDevice, UsbHistoryEntry } from '../../electron/usb/manager';
 import type { DiskCategory, LargeFile, TempFileCategory } from '../../electron/disk/analyzer';
+import type { TempFileCategory as CleanupTempCategory, CleanupResult } from '../../electron/cleanup/tempCleaner';
+import type { BrowserCacheInfo } from '../../electron/cleanup/browserCleaner';
+import type { SystemCleanupCategory } from '../../electron/cleanup/systemCleaner';
+import type { LargeFileEntry } from '../../electron/cleanup/largeFileScanner';
+import type { DuplicateGroup } from '../../electron/cleanup/duplicateFinder';
 import type { SecurityStatus } from '../../electron/security/center';
 import type { ClipboardEntry } from '../../electron/clipboard/history';
 import type { DriverEntry, DriverDetail } from '../../electron/drivers/manager';
@@ -141,11 +146,25 @@ declare global {
       getUsbHistory: () => Promise<UsbHistoryEntry[]>;
       ejectUsbDevice: (serialNumber: string) => Promise<{ success: boolean; message: string }>;
 
-      // Disk Cleanup
+      // Disk Cleanup (legacy)
       getDiskSpace: (drive: string) => Promise<DiskCategory[]>;
       getLargeFiles: (drive: string, limit?: number) => Promise<LargeFile[]>;
       getTempFiles: () => Promise<TempFileCategory[]>;
       cleanTempFiles: (categories: string[]) => Promise<{ freedMB: number; errors: string[] }>;
+
+      // Cleanup - Temp & System
+      scanTempFiles: () => Promise<CleanupTempCategory[]>;
+      cleanTempFilesAdv: (categories: string[]) => Promise<CleanupResult[]>;
+      scanBrowserCaches: () => Promise<BrowserCacheInfo[]>;
+      cleanBrowserCache: (browser: string) => Promise<{ size: number; message: string }>;
+      scanSystemCleanup: () => Promise<SystemCleanupCategory[]>;
+      cleanSystem: (categories: string[]) => Promise<CleanupResult[]>;
+
+      // Cleanup - Large Files & Duplicates
+      scanLargeFiles: (minSizeMB?: number, scanPath?: string) => Promise<LargeFileEntry[]>;
+      scanDuplicates: (paths?: string[]) => Promise<DuplicateGroup[]>;
+      onLargeFilesProgress: (callback: (data: { pct: number; current: string }) => void) => () => void;
+      onDuplicatesProgress: (callback: (data: { pct: number }) => void) => () => void;
 
       // Security
       getSecurityStatus: () => Promise<SecurityStatus>;

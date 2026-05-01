@@ -17,6 +17,11 @@ import { SchedulerReader } from './scheduler/reader';
 import { FirewallReader } from './firewall/reader';
 import { UsbManager } from './usb/manager';
 import { DiskAnalyzer } from './disk/analyzer';
+import { TempCleaner } from './cleanup/tempCleaner';
+import { BrowserCleaner } from './cleanup/browserCleaner';
+import { SystemCleaner } from './cleanup/systemCleaner';
+import { LargeFileScanner } from './cleanup/largeFileScanner';
+import { DuplicateFinder } from './cleanup/duplicateFinder';
 import { SecurityCenter } from './security/center';
 import { ClipboardManager } from './clipboard/history';
 import { DriverManager } from './drivers/manager';
@@ -69,6 +74,11 @@ const schedulerReader = new SchedulerReader();
 const firewallReader = new FirewallReader();
 const usbManager = new UsbManager();
 const diskAnalyzer = new DiskAnalyzer();
+const tempCleaner = new TempCleaner();
+const browserCleaner = new BrowserCleaner();
+const systemCleaner = new SystemCleaner();
+const largeFileScanner = new LargeFileScanner();
+const duplicateFinder = new DuplicateFinder();
 const securityCenter = new SecurityCenter();
 const clipboardManager = new ClipboardManager();
 const driverManager = new DriverManager();
@@ -584,7 +594,7 @@ function registerIpcHandlers(): void {
     usbManager.ejectDevice(serialNumber)
   );
 
-  // Disk Cleanup
+  // Disk Cleanup (legacy - keep for backward compat)
   ipcMain.handle('pchelper:get-disk-space', (_event, drive: string) =>
     diskAnalyzer.getSpaceDistribution(drive)
   );
@@ -600,6 +610,49 @@ function registerIpcHandlers(): void {
   ipcMain.handle('pchelper:clean-temp-files', (_event, categories: string[]) =>
     diskAnalyzer.cleanTempFiles(categories)
   );
+
+  // Cleanup - Temp Files
+  ipcMain.handle('pchelper:cleanup-scan-temp', () =>
+    tempCleaner.scanTempFiles()
+  );
+
+  ipcMain.handle('pchelper:cleanup-clean-temp', (_event, categories: string[]) =>
+    tempCleaner.cleanTempFiles(categories)
+  );
+
+  // Cleanup - Browser Caches
+  ipcMain.handle('pchelper:cleanup-scan-browsers', () =>
+    browserCleaner.scanBrowserCaches()
+  );
+
+  ipcMain.handle('pchelper:cleanup-clean-browser', (_event, browser: string) =>
+    browserCleaner.cleanBrowserCache(browser)
+  );
+
+  // Cleanup - System
+  ipcMain.handle('pchelper:cleanup-scan-system', () =>
+    systemCleaner.scanSystem()
+  );
+
+  ipcMain.handle('pchelper:cleanup-clean-system', (_event, categories: string[]) =>
+    systemCleaner.cleanSystem(categories)
+  );
+
+  // Cleanup - Large Files
+  ipcMain.handle('pchelper:cleanup-scan-large-files', async (_event, minSizeMB?: number, scanPath?: string) => {
+    const results = await largeFileScanner.scanLargeFiles(minSizeMB, scanPath, (pct, current) => {
+      mainWindow?.webContents.send('pchelper:cleanup-large-files-progress', { pct, current });
+    });
+    return results;
+  });
+
+  // Cleanup - Duplicates
+  ipcMain.handle('pchelper:cleanup-scan-duplicates', async (_event, paths?: string[]) => {
+    const results = await duplicateFinder.scanForDuplicates(paths, (pct) => {
+      mainWindow?.webContents.send('pchelper:cleanup-duplicates-progress', { pct });
+    });
+    return results;
+  });
 
   // Security
   ipcMain.handle('pchelper:get-security-status', () =>

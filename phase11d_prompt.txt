@@ -1,0 +1,191 @@
+## PCHelper — Phase 11d: System Cleanup & Optimization (系统优化清理)
+
+### Overview
+Add a system cleanup tool with temp file cleaning, browser cache cleanup, Windows update cache cleanup, large file scanner, and duplicate file finder.
+
+### Architecture
+
+```
+electron/
+├── cleanup/
+│   ├── tempCleaner.ts     — Temp file scanner + cleaner
+│   ├── browserCleaner.ts  — Browser cache manager
+│   ├── systemCleaner.ts   — Windows update cache, logs, prefetch
+│   ├── largeFileScanner.ts — Large file finder
+│   └── duplicateFinder.ts  — Duplicate file detector (by name+size+hash)
+
+src/
+├── components/
+│   └── CleanupView/
+│       ├── index.tsx        — Main view with 3 tabs: Quick Clean, Large Files, Duplicates
+│       ├── QuickClean.tsx   — Temp/browser/system cleanup with checklist
+│       ├── LargeFiles.tsx   — Large file scanner with results table
+│       └── DuplicateFiles.tsx — Duplicate file finder with results
+├── stores/
+│   └── cleanupStore.ts   — Zustand state
+```
+
+### Backend (`electron/cleanup/`)
+
+#### `tempCleaner.ts`
+```typescript
+export interface TempFileCategory {
+  id: string;
+  name: string;
+  path: string;
+  description: string;
+  size: number; // bytes
+  fileCount: number;
+  canClean: boolean;
+}
+
+export interface CleanupResult {
+  category: string;
+  filesDeleted: number;
+  spaceFreed: number; // bytes
+  errors: string[];
+}
+
+export class TempCleaner {
+  scanTempFiles(): TempFileCategory[]
+  cleanTempFiles(categories: string[]): Promise<CleanupResult[]>
+}
+```
+
+Categories: Windows Temp (`C:\Windows\Temp`), User Temp (`AppData\Local\Temp`), Prefetch, Recycle Bin, Recent Documents, Delivery Optimization Files.
+
+#### `browserCleaner.ts`
+```typescript
+export interface BrowserCacheInfo {
+  browser: string; // Chrome, Edge, Firefox, etc.
+  cacheSize: number;
+  cookieCount: number;
+  historySize: number;
+  lastCleared: string;
+}
+
+export class BrowserCleaner {
+  scanBrowserCaches(): BrowserCacheInfo[]
+  cleanBrowserCache(browser: string): Promise<{ size: number; message: string }>
+}
+```
+
+#### `systemCleaner.ts`
+```typescript
+export interface SystemCleanupCategory {
+  id: string;
+  name: string;
+  description: string;
+  size: number;
+  canClean: boolean;
+  risk: 'safe' | 'moderate' | 'warning';
+}
+
+export class SystemCleaner {
+  scanSystem(): SystemCleanupCategory[]
+  cleanSystem(categories: string[]): Promise<CleanupResult[]>
+}
+```
+
+Categories: Windows Update Cache (SoftwareDistribution), Log files (>30 days), Error Reporting, Old Windows installations (Windows.old), Thumbnail cache, Font cache.
+
+#### `largeFileScanner.ts`
+```typescript
+export interface LargeFileEntry {
+  path: string;
+  name: string;
+  size: number;
+  type: string;
+  modified: string;
+  extension: string;
+}
+
+export class LargeFileScanner {
+  scanLargeFiles(minSizeMB?: number, path?: string, onProgress?: (pct: number, current: string) => void): Promise<LargeFileEntry[]>
+}
+```
+
+Scan drives C: and D: for files >100MB. Simulated: 20-30 files (videos, ISOs, VM images, backups, large projects).
+
+#### `duplicateFinder.ts`
+```typescript
+export interface DuplicateGroup {
+  hash: string;
+  size: number;
+  count: number;
+  files: Array<{ path: string; name: string; modified: string }>;
+}
+
+export class DuplicateFinder {
+  scanForDuplicates(paths?: string[], onProgress?: (pct: number) => void): Promise<DuplicateGroup[]>
+}
+```
+
+Simulated: 5-10 duplicate groups (downloads, backup copies, photo duplicates).
+
+### Frontend (`src/components/CleanupView/`)
+
+**Main (`index.tsx`):** 3-tab layout: Quick Clean | Large Files | Duplicates
+
+**QuickClean.tsx:**
+- Scan button → shows categorized list with checkboxes + size
+- Quick summary: total reclaimable space
+- Clean selected → progress + results
+- Risk indicators: safe (green), moderate (yellow), warning (red)
+
+**LargeFiles.tsx:**
+- Configurable min size (50MB/100MB/500MB/1GB)
+- Drive selector
+- Scan button with progress
+- Results table: name, path, size (human readable), type, last modified
+- Sortable columns, filter by extension
+
+**DuplicateFiles.tsx:**
+- Path selector(s) + Scan button
+- Results: grouped by hash/size, show all matching files
+- Each group: file count, total wasted space, expandable file list
+- Color coding: green for first occurrence, yellow for duplicates
+
+### IPC Handlers
+```
+pchelper:cleanup-scan-temp
+pchelper:cleanup-clean-temp
+pchelper:cleanup-scan-browsers
+pchelper:cleanup-clean-browser
+pchelper:cleanup-scan-system
+pchelper:cleanup-clean-system
+pchelper:cleanup-scan-large-files
+pchelper:cleanup-scan-duplicates
+```
+
+### Preload Bridge
+```
+scanTempFiles, cleanTempFiles, scanBrowserCaches, cleanBrowserCache,
+scanSystemCleanup, cleanSystem, scanLargeFiles, scanDuplicates
+```
+
+### Sidebar Integration
+- Replace existing "Disk Cleanup" with this enhanced Cleanup tool
+- Icon: `Trash2` from lucide-react (keep existing icon)
+- Label: "Cleanup"
+- Move to Tools section (replace Disk Cleanup)
+
+### Type Changes
+- `NavPage` — add `'cleanup'` (keep diskcleanup for backwards compat or replace)
+- Actually: since Disk Cleanup was limited, rename it. Replace `diskcleanup` with `cleanup`.
+- `global.d.ts` — add cleanup method types + result types
+
+### UI Style
+- Dark theme matching PCHelper
+- Progress bars for scanning operations
+- Size displayed in human-readable format (KB/MB/GB)
+- All Chinese UI text
+
+### CRITICAL RULES
+1. After ALL changes: `npx tsc --noEmit` (zero errors required)
+2. npm install already done, do NOT re-run it
+3. Do NOT modify existing working code unless necessary for integration
+4. All Chinese UI text
+5. Registry operations are READ-ONLY only — never mention registry
+6. All data is simulated but realistic (real Windows paths, real sizes)
+7. Replace the old DiskCleanup completely — remove old files/components
