@@ -24,7 +24,7 @@ import { LargeFileScanner } from './cleanup/largeFileScanner';
 import { DuplicateFinder } from './cleanup/duplicateFinder';
 import { SecurityCenter } from './security/center';
 import { ClipboardManager } from './clipboard/history';
-import { DriverManager } from './drivers/manager';
+import { DriverManager } from './driver/driverManager';
 import { ServiceManager } from './services/manager';
 import { EventLogReader } from './events/reader';
 import { BatteryReporter } from './battery/reporter';
@@ -683,16 +683,32 @@ function registerIpcHandlers(): void {
   );
 
   // Drivers
-  ipcMain.handle('pchelper:get-drivers', () =>
-    driverManager.getDrivers()
+  ipcMain.handle('pchelper:driver-list', () =>
+    driverManager.listDrivers()
   );
 
-  ipcMain.handle('pchelper:get-driver-details', (_event, name: string) =>
-    driverManager.getDriverDetails(name)
+  ipcMain.handle('pchelper:driver-detail', (_event, hardwareId: string) =>
+    driverManager.getDriverDetail(hardwareId)
   );
 
-  ipcMain.handle('pchelper:get-problem-drivers', () =>
-    driverManager.getProblemDrivers()
+  ipcMain.handle('pchelper:driver-create-backup', (_event, name: string, driverIds?: string[]) =>
+    driverManager.createBackup(name, driverIds)
+  );
+
+  ipcMain.handle('pchelper:driver-list-backups', () =>
+    driverManager.listBackups()
+  );
+
+  ipcMain.handle('pchelper:driver-restore-backup', (_event, backupId: string) =>
+    driverManager.restoreBackup(backupId)
+  );
+
+  ipcMain.handle('pchelper:driver-version-diff', (_event, backupId: string) =>
+    driverManager.getVersionDiff(backupId)
+  );
+
+  ipcMain.handle('pchelper:driver-delete-backup', (_event, backupId: string) =>
+    driverManager.deleteBackup(backupId)
   );
 
   // Services

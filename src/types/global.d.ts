@@ -10,7 +10,7 @@ import type { LargeFileEntry } from '../../electron/cleanup/largeFileScanner';
 import type { DuplicateGroup } from '../../electron/cleanup/duplicateFinder';
 import type { SecurityStatus } from '../../electron/security/center';
 import type { ClipboardEntry } from '../../electron/clipboard/history';
-import type { DriverEntry, DriverDetail } from '../../electron/drivers/manager';
+import type { DriverEntry, DriverBackup, DriverVersionDiff } from '../../electron/driver/driverManager';
 import type { ServiceEntry, ServiceDetail } from '../../electron/services/manager';
 import type { EventLogEntry } from '../../electron/events/reader';
 import type { BatteryStatus, BatteryHistoryPoint } from '../../electron/battery/reporter';
@@ -178,9 +178,13 @@ declare global {
       toggleClipboardPin: (id: string) => Promise<void>;
 
       // Drivers
-      getDrivers: () => Promise<DriverEntry[]>;
-      getDriverDetails: (name: string) => Promise<DriverDetail | null>;
-      getProblemDrivers: () => Promise<DriverEntry[]>;
+      listDrivers: () => Promise<DriverEntry[]>;
+      getDriverDetail: (hardwareId: string) => Promise<DriverEntry | null>;
+      createDriverBackup: (name: string, driverIds?: string[]) => Promise<DriverBackup>;
+      listDriverBackups: () => Promise<DriverBackup[]>;
+      restoreDriverBackup: (backupId: string) => Promise<{ success: boolean; message: string; restoredCount: number }>;
+      getDriverVersionDiff: (backupId: string) => Promise<DriverVersionDiff[]>;
+      deleteDriverBackup: (backupId: string) => Promise<boolean>;
 
       // Services
       getServices: () => Promise<ServiceEntry[]>;

@@ -23,7 +23,7 @@ import UsbView from './components/UsbView';
 import CleanupView from './components/CleanupView';
 import SecurityView from './components/SecurityView';
 import ClipboardView from './components/ClipboardView';
-import DriversView from './components/DriversView';
+import DriverManagerView from './components/DriverManagerView';
 import ServicesView from './components/ServicesView';
 import EventLogView from './components/EventLogView';
 import BatteryView from './components/BatteryView';
@@ -103,7 +103,7 @@ function MainContent() {
     case 'clipboard':
       return <ClipboardView />;
     case 'drivers':
-      return <DriversView />;
+      return <DriverManagerView />;
     case 'services':
       return <ServicesView />;
     case 'eventlog':

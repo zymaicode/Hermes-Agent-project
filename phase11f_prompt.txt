@@ -1,0 +1,134 @@
+## PCHelper — Phase 11f: Driver Backup & Restore (驱动备份与还原)
+
+### Overview
+Add a driver management module: view all installed drivers, backup selected drivers, restore from backup, compare driver versions.
+
+### Architecture
+
+```
+electron/
+├── driver/
+│   └── driverManager.ts  — Driver info, backup, restore, version compare
+
+src/
+├── components/
+│   └── DriverManagerView/
+│       ├── index.tsx         — Main view: 3 tabs: All Drivers, Backup, Compare
+│       ├── DriverList.tsx    — All installed drivers table with search/filter
+│       ├── DriverBackup.tsx  — Backup/Restore management
+│       └── DriverCompare.tsx — Version comparison tool
+├── stores/
+│   └── driverManagerStore.ts
+```
+
+### Backend (`electron/driver/driverManager.ts`)
+
+```typescript
+export interface DriverEntry {
+  name: string;
+  provider: string;
+  version: string;
+  date: string;
+  className: string;
+  hardwareId: string;
+  path: string;
+  isSigned: boolean;
+  isThirdParty: boolean;
+  status: 'running' | 'stopped' | 'error';
+}
+
+export interface DriverBackup {
+  id: string;
+  name: string;
+  date: string;
+  driverCount: number;
+  totalSize: number; // bytes
+  path: string;
+  description: string;
+}
+
+export interface DriverVersionDiff {
+  name: string;
+  currentVersion: string;
+  backupVersion: string | null;
+  newerVersion: string | null;
+  status: 'same' | 'newer' | 'older' | 'missing_in_backup' | 'new_in_backup';
+}
+
+export class DriverManager {
+  listDrivers(): DriverEntry[];
+  getDriverDetail(hardwareId: string): DriverEntry | null;
+  createBackup(name: string, driverIds?: string[]): Promise<DriverBackup>;
+  listBackups(): DriverBackup[];
+  restoreBackup(backupId: string): Promise<{ success: boolean; message: string; restoredCount: number }>;
+  getVersionDiff(backupId: string): DriverVersionDiff[];
+  deleteBackup(backupId: string): boolean;
+}
+```
+
+Include ~60 realistic driver entries:
+- Display: nvlddmkm (NVIDIA), igdkmd64, amdxe (AMD)
+- Network: rt640x64 (Realtek), e1r68x64 (Intel), athw8x (Qualcomm)
+- Audio: HdAudio, RTKVHD64 (Realtek), AtihdWT6 (AMD HDMI)
+- USB: usbhub, xhci (Intel)
+- Storage: storahci, iaStorAC (Intel), stornvme
+- System: hal.dll, ntoskrnl.exe, CI.dll
+- Bluetooth, HID, Print, etc.
+
+### Frontend (`src/components/DriverManagerView/`)
+
+**Main (`index.tsx`):** 3-tab layout: All Drivers | Backup | Compare
+
+**DriverList.tsx:**
+- Table: name, provider, version, date, class, status (badge)
+- Filter: all / Microsoft / Third-party / Error
+- Search: by name/provider
+- Checkbox selection for backup
+- "Backup Selected" button
+- Click to expand: full details (hardware ID, driver path, signed status)
+
+**DriverBackup.tsx:**
+- Left: existing backups list with date, count, size
+- Right: "Create New Backup" form — name input, description, select drivers
+- Backup item: expand to see included drivers
+- "Restore" button per backup (with confirmation)
+- "Delete" button per backup
+
+**DriverCompare.tsx:**
+- Select a backup from dropdown
+- Shows comparison table: driver name | current version | backup version | diff status
+- Color coding: green=same, blue=newer, red=older, gray=missing
+
+### IPC Handlers
+```
+pchelper:driver-list
+pchelper:driver-detail
+pchelper:driver-create-backup
+pchelper:driver-list-backups
+pchelper:driver-restore-backup
+pchelper:driver-version-diff
+pchelper:driver-delete-backup
+```
+
+### Preload Bridge
+```
+listDrivers, getDriverDetail, createDriverBackup, listDriverBackups,
+restoreDriverBackup, getDriverVersionDiff, deleteDriverBackup
+```
+
+### Sidebar Integration
+- Replace existing "Drivers" in System section
+- Icon: `Cpu` from lucide-react (keep existing)
+- Label: "Drivers" (keep existing)
+- Replace old DriversView completely
+
+### Type Changes
+- `NavPage` — keep `'drivers'` (replace existing)
+- `global.d.ts` — add new driver types + methods, update existing
+
+### CRITICAL RULES
+1. After ALL changes: `npx tsc --noEmit` (zero errors required)
+2. npm install already done, do NOT re-run it
+3. Old DriversView should be replaced, remove old files
+4. All Chinese UI text
+5. All data is simulated but realistic (real driver names, real versions)

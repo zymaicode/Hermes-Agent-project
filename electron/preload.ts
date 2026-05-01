@@ -192,9 +192,13 @@ contextBridge.exposeInMainWorld('pchelper', {
   toggleClipboardPin: (id: string) => ipcRenderer.invoke('pchelper:toggle-clipboard-pin', id),
 
   // Drivers
-  getDrivers: () => ipcRenderer.invoke('pchelper:get-drivers'),
-  getDriverDetails: (name: string) => ipcRenderer.invoke('pchelper:get-driver-details', name),
-  getProblemDrivers: () => ipcRenderer.invoke('pchelper:get-problem-drivers'),
+  listDrivers: () => ipcRenderer.invoke('pchelper:driver-list'),
+  getDriverDetail: (hardwareId: string) => ipcRenderer.invoke('pchelper:driver-detail', hardwareId),
+  createDriverBackup: (name: string, driverIds?: string[]) => ipcRenderer.invoke('pchelper:driver-create-backup', name, driverIds),
+  listDriverBackups: () => ipcRenderer.invoke('pchelper:driver-list-backups'),
+  restoreDriverBackup: (backupId: string) => ipcRenderer.invoke('pchelper:driver-restore-backup', backupId),
+  getDriverVersionDiff: (backupId: string) => ipcRenderer.invoke('pchelper:driver-version-diff', backupId),
+  deleteDriverBackup: (backupId: string) => ipcRenderer.invoke('pchelper:driver-delete-backup', backupId),
 
   // Services
   getServices: () => ipcRenderer.invoke('pchelper:get-services'),
