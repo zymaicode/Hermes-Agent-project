@@ -39,6 +39,7 @@ import {
   Type,
   Eye,
   UserCircle,
+  Network,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { useConflictStore } from '../../stores/conflictStore';
@@ -83,6 +84,7 @@ const navSections: { heading: string; items: NavItem[] }[] = [
       { id: 'registry', label: 'Registry', icon: Search },
       { id: 'diskcleanup', label: 'Disk Cleanup', icon: Trash2 },
       { id: 'filetypes', label: 'File Types', icon: FileType },
+      { id: 'netdiag', label: 'Net Diag', icon: Network },
     ],
   },
   {

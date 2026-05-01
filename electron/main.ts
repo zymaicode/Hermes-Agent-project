@@ -46,6 +46,11 @@ import { OverlayDataCollector } from './overlay/dataCollector';
 import { UserManager } from './accounts/userManager';
 import { UacManager } from './accounts/uacManager';
 import { CredentialManager } from './accounts/credentialManager';
+import { ping } from './netdiag/ping';
+import { traceRoute } from './netdiag/traceroute';
+import { scanPorts } from './netdiag/portscanner';
+import { dnsLookup } from './netdiag/dns';
+import { testBandwidth } from './netdiag/bandwidth';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -1143,6 +1148,27 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('pchelper:accounts-remove-credential', (_event, targetName: string) =>
     credentialManager.removeCredential(targetName)
+  );
+
+  // NetDiag
+  ipcMain.handle('pchelper:netdiag-ping', (_event, target: string, count?: number, timeout?: number) =>
+    ping(target, count, timeout)
+  );
+
+  ipcMain.handle('pchelper:netdiag-traceroute', (_event, target: string) =>
+    traceRoute(target)
+  );
+
+  ipcMain.handle('pchelper:netdiag-scan-ports', (_event, target: string, ports?: number[]) =>
+    scanPorts(target, ports)
+  );
+
+  ipcMain.handle('pchelper:netdiag-dns-lookup', (_event, domain: string, types?: string[]) =>
+    dnsLookup(domain, types)
+  );
+
+  ipcMain.handle('pchelper:netdiag-bandwidth-test', () =>
+    testBandwidth()
   );
 
   // Settings management

@@ -342,6 +342,18 @@ contextBridge.exposeInMainWorld('pchelper', {
   getOverlayMetrics: () =>
     ipcRenderer.invoke('pchelper:overlay-get-metrics'),
 
+  // NetDiag
+  ping: (target: string, count?: number, timeout?: number) =>
+    ipcRenderer.invoke('pchelper:netdiag-ping', target, count, timeout),
+  traceRoute: (target: string) =>
+    ipcRenderer.invoke('pchelper:netdiag-traceroute', target),
+  scanPorts: (target: string, ports?: number[]) =>
+    ipcRenderer.invoke('pchelper:netdiag-scan-ports', target, ports),
+  dnsLookup: (domain: string, types?: string[]) =>
+    ipcRenderer.invoke('pchelper:netdiag-dns-lookup', domain, types),
+  testBandwidth: () =>
+    ipcRenderer.invoke('pchelper:netdiag-bandwidth-test'),
+
   // User Accounts
   listLocalUsers: () =>
     ipcRenderer.invoke('pchelper:accounts-list-users'),

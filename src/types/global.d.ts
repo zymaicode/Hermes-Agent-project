@@ -22,6 +22,11 @@ import type { MemoryModule, MemoryAllocation, MemoryTiming, MemoryHealth, PageFi
 import type { WindowsFeature } from '../../electron/features/manager';
 import type { SoundScheme, SystemSound, AudioDevice } from '../../electron/sounds/manager';
 import type { FontEntry } from '../../electron/fonts/manager';
+import type { PingResult } from '../../electron/netdiag/ping';
+import type { TraceRouteResult } from '../../electron/netdiag/traceroute';
+import type { PortScanResult } from '../../electron/netdiag/portscanner';
+import type { DnsLookupResult } from '../../electron/netdiag/dns';
+import type { BandwidthResult } from '../../electron/netdiag/bandwidth';
 
 export {};
 
@@ -375,6 +380,13 @@ declare global {
       updateOverlayConfig: (config: OverlayConfigPartial) => Promise<void>;
       getOverlayStatus: () => Promise<{ active: boolean; config: OverlayConfigFull }>;
       getOverlayMetrics: () => Promise<OverlayMetricsData | null>;
+
+      // NetDiag
+      ping: (target: string, count?: number, timeout?: number) => Promise<PingResult>;
+      traceRoute: (target: string) => Promise<TraceRouteResult>;
+      scanPorts: (target: string, ports?: number[]) => Promise<PortScanResult>;
+      dnsLookup: (domain: string, types?: string[]) => Promise<DnsLookupResult>;
+      testBandwidth: () => Promise<BandwidthResult>;
 
       // User Accounts
       listLocalUsers: () => Promise<LocalUser[]>;

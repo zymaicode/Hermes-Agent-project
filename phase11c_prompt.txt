@@ -1,0 +1,189 @@
+## PCHelper — Phase 11c: Network Diagnostic Toolbox (网络诊断工具箱)
+
+### Overview
+Add a comprehensive network diagnostic toolkit: Ping, Traceroute, Port Scanner, DNS lookup, Bandwidth test.
+
+### Architecture
+
+```
+electron/
+├── netdiag/
+│   ├── ping.ts         — Ping utility with stats
+│   ├── traceroute.ts   — Traceroute implementation
+│   ├── portscanner.ts  — Port scanner
+│   ├── dns.ts          — DNS lookup tools
+│   └── bandwidth.ts    — Bandwidth speed test
+
+src/
+├── components/
+│   └── NetDiagView/
+│       ├── index.tsx        — Main view with tool tabs
+│       ├── PingTool.tsx     — Ping interface + live results
+│       ├── TraceRoute.tsx   — Traceroute with hop visualization
+│       ├── PortScanner.tsx  — Port scanner with results table
+│       ├── DnsLookup.tsx    — DNS query tool
+│       └── BandwidthTest.tsx — Bandwidth speed test
+├── stores/
+│   └── netdiagStore.ts   — Zustand state
+```
+
+### Backend (`electron/netdiag/`)
+
+#### `ping.ts`
+```typescript
+export interface PingResult {
+  target: string;
+  status: 'success' | 'timeout' | 'error';
+  ip: string;
+  sent: number;
+  received: number;
+  loss: number; // percentage
+  rtt: {
+    min: number;
+    max: number;
+    avg: number;
+    last: number;
+  };
+  hops: number;
+  ttl: number;
+  duration: number;
+}
+
+export function ping(target: string, count?: number, timeout?: number): Promise<PingResult>
+```
+Simulated: realistic ping times (5-200ms), 0-10% packet loss.
+
+#### `traceroute.ts`
+```typescript
+export interface Hop {
+  hop: number;
+  ip: string;
+  hostname: string;
+  rtt1: number;
+  rtt2: number;
+  rtt3: number;
+  location: string;
+}
+
+export interface TraceRouteResult {
+  target: string;
+  ip: string;
+  hops: Hop[];
+  totalHops: number;
+  duration: number;
+}
+
+export function traceRoute(target: string): Promise<TraceRouteResult>
+```
+Simulated: 8-18 hops with realistic IPs (gateway → ISP → backbone → CDN/destination).
+
+#### `portscanner.ts`
+```typescript
+export interface PortResult {
+  port: number;
+  service: string;
+  state: 'open' | 'closed' | 'filtered';
+  banner?: string;
+}
+
+export interface PortScanResult {
+  target: string;
+  ports: PortResult[];
+  openCount: number;
+  duration: number;
+}
+
+export function scanPorts(target: string, ports?: number[]): Promise<PortScanResult>
+```
+Common ports to scan: 21(FTP), 22(SSH), 23(Telnet), 25(SMTP), 53(DNS), 80(HTTP), 110(POP3), 135(RPC), 139(NetBIOS), 143(IMAP), 443(HTTPS), 445(SMB), 3389(RDP), 3306(MySQL), 5432(PostgreSQL), 8080(HTTP-Alt), 8443(HTTPS-Alt). Simulated: target is localhost or nearby IP — some ports open, most closed.
+
+#### `dns.ts`
+```typescript
+export interface DnsRecord {
+  type: 'A' | 'AAAA' | 'CNAME' | 'MX' | 'NS' | 'TXT' | 'SOA';
+  value: string;
+  ttl: number;
+}
+
+export interface DnsLookupResult {
+  domain: string;
+  records: DnsRecord[];
+  duration: number;
+  resolver: string;
+}
+
+export function dnsLookup(domain: string, types?: string[]): Promise<DnsLookupResult>
+```
+Simulated: realistic DNS records for popular domains.
+
+#### `bandwidth.ts`
+```typescript
+export interface BandwidthResult {
+  downloadSpeed: number; // Mbps
+  uploadSpeed: number;   // Mbps
+  latency: number;       // ms
+  server: string;
+  duration: number;
+  dataDownloaded: number; // MB
+}
+
+export function testBandwidth(): Promise<BandwidthResult>
+```
+Simulated: download 50-500 Mbps, upload 10-100 Mbps.
+
+### Frontend (`src/components/NetDiagView/`)
+
+**Main page (`index.tsx`):** Tabbed interface with 5 tools.
+
+**PingTool.tsx:** Input + Ping button. Results table: seq, ip, rtt, TTL. Stats: sent/received/loss%, min/max/avg. Visual progress bar.
+
+**TraceRoute.tsx:** Input + Trace button. Results as an animated step-by-step hop list. Shows hop number, IP, hostname, RTTs, estimated location. Visual map-like vertical timeline.
+
+**PortScanner.tsx:** Input (IP) + port range selector (common/quick/full) + Scan button. Results table: port, service, state (colored badge). Open ports highlighted. Summary: X open of Y scanned.
+
+**DnsLookup.tsx:** Input (domain) + record type dropdown (A/AAAA/CNAME/MX/NS/TXT/SOA/All) + Lookup button. Results grouped by record type with colored badges.
+
+**BandwidthTest.tsx:** Start test button. Animated speed gauge. Shows: download speed, upload speed, latency, data used. Visual progress for each phase.
+
+### IPC Handlers
+```
+pchelper:netdiag-ping
+pchelper:netdiag-traceroute
+pchelper:netdiag-scan-ports
+pchelper:netdiag-dns-lookup
+pchelper:netdiag-bandwidth-test
+```
+
+### Preload Bridge
+```
+ping(target, count?, timeout?)
+traceRoute(target)
+scanPorts(target, ports?)
+dnsLookup(domain, types?)
+testBandwidth()
+```
+
+### Sidebar Integration
+- Add to Tools section, after File Types
+- Icon: `Network` from lucide-react
+- Label: "Net Diag"
+- Tools: Benchmark > Registry > Disk Cleanup > File Types > **Net Diag**
+
+### Type Changes
+- `NavPage` — add `'netdiag'`
+- `global.d.ts` — add netdiag method types + result types
+
+### UI Style
+- Dark theme matching PCHelper
+- Tab-based layout with 5 tabs
+- All Chinese UI text
+- Use existing card/btn/input classes
+- Progress bars for bandwidth test and ping
+- Color-coded badges for port states (open=green, closed=gray, filtered=yellow)
+
+### CRITICAL RULES
+1. After ALL changes: `npx tsc --noEmit` (zero errors required)
+2. npm install already done, do NOT re-run it
+3. Do NOT modify existing working code unless necessary for integration
+4. All Chinese UI text
+5. All data is simulated but realistic (real IP ranges, real port services)
