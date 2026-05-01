@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Cpu, HardDrive, MemoryStick, Monitor } from 'lucide-react';
+import { Cpu, HardDrive, Heart, MemoryStick, Monitor } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -8,6 +8,7 @@ import {
   Area,
 } from 'recharts';
 import { useHardwareStore } from '../../stores/hardwareStore';
+import { useHealthStore } from '../../stores/healthStore';
 
 function getUsageColor(usage: number): string {
   if (usage >= 80) return 'var(--red)';
@@ -122,10 +123,20 @@ function StatCard({
   );
 }
 
+function getHealthColor(score: number): string {
+  if (score >= 90) return 'var(--green)';
+  if (score >= 75) return 'var(--accent)';
+  if (score >= 55) return 'var(--yellow)';
+  if (score >= 35) return 'var(--orange)';
+  return 'var(--red)';
+}
+
 export default function Dashboard() {
   const snapshot = useHardwareStore((s) => s.snapshot);
   const history = useHardwareStore((s) => s.history);
   const polling = useHardwareStore((s) => s.polling);
+  const healthScore = useHealthStore((s) => s.score);
+  const fetchHealth = useHealthStore((s) => s.fetchScore);
   const [lastUpdated, setLastUpdated] = useState('');
 
   useEffect(() => {
@@ -135,6 +146,12 @@ export default function Dashboard() {
       );
     }
   }, [snapshot]);
+
+  useEffect(() => {
+    fetchHealth();
+    const interval = setInterval(fetchHealth, 10000);
+    return () => clearInterval(interval);
+  }, [fetchHealth]);
 
   if (!snapshot) {
     return (
@@ -177,7 +194,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid-4" style={{ marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
         <StatCard
           title="CPU Usage"
           icon={Cpu}
@@ -219,6 +236,46 @@ export default function Dashboard() {
           history={gpuHistory}
           timestamp={timestamp}
         />
+        {healthScore && (
+          <div className="card" style={{ position: 'relative', overflow: 'hidden' }}>
+            <div className="card-header">
+              <span className="card-title">Health Score</span>
+              <span style={{ color: getHealthColor(healthScore.total) }}><Heart size={16} /></span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8 }}>
+              <svg width="80" height="80" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="32" fill="none" stroke="var(--bg-tertiary)" strokeWidth="6" />
+                <circle
+                  cx="40" cy="40" r="32" fill="none"
+                  stroke={getHealthColor(healthScore.total)}
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 32}
+                  strokeDashoffset={2 * Math.PI * 32 * (1 - healthScore.total / 100)}
+                  transform="rotate(-90 40 40)"
+                />
+                <text x="40" y="38" textAnchor="middle" dominantBaseline="central"
+                  fill={getHealthColor(healthScore.total)} fontSize="20" fontWeight="700"
+                  fontFamily="var(--font-mono)"
+                >
+                  {healthScore.total}
+                </text>
+                <text x="40" y="53" textAnchor="middle" dominantBaseline="central"
+                  fill="var(--text-secondary)" fontSize="9" fontWeight="500"
+                >
+                  /100
+                </text>
+              </svg>
+              <div style={{ fontSize: 13, fontWeight: 600, color: getHealthColor(healthScore.total), marginTop: 4 }}>
+                {healthScore.grade}
+              </div>
+            </div>
+            <div className="stat-label" style={{ textAlign: 'center' }}>
+              {healthScore.recommendations[0] || 'System healthy'}
+            </div>
+            <div className="card-timestamp">{timestamp}</div>
+          </div>
+        )}
       </div>
 
       {/* System Overview */}
