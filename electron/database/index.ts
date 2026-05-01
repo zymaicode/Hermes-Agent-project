@@ -41,6 +41,41 @@ export function initDatabase(): Database.Database {
       content TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS conflict_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      timestamp INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      severity TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      resolved INTEGER DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS update_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      timestamp INTEGER NOT NULL,
+      scan_result TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS alert_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      timestamp INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      severity TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      detail TEXT,
+      dismissed INTEGER DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS health_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      timestamp INTEGER NOT NULL,
+      overall_score INTEGER NOT NULL,
+      grade TEXT NOT NULL,
+      breakdown TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -124,4 +159,78 @@ export function setSetting(key: string, value: string): void {
     key,
     value
   );
+}
+
+export function logConflict(conflict: {
+  type: string;
+  severity: string;
+  title: string;
+  description: string;
+}): void {
+  db.prepare(
+    'INSERT INTO conflict_log (timestamp, type, severity, title, description) VALUES (?, ?, ?, ?, ?)'
+  ).run(Date.now(), conflict.type, conflict.severity, conflict.title, conflict.description);
+}
+
+export function dismissConflict(id: number): void {
+  db.prepare('UPDATE conflict_log SET resolved = 1 WHERE id = ?').run(id);
+}
+
+export function getConflictHistory(limit = 50): unknown[] {
+  return db
+    .prepare('SELECT * FROM conflict_log ORDER BY id DESC LIMIT ?')
+    .all(limit);
+}
+
+export function saveUpdateHistory(scanResultJson: string): void {
+  db.prepare(
+    'INSERT INTO update_history (timestamp, scan_result) VALUES (?, ?)'
+  ).run(Date.now(), scanResultJson);
+}
+
+export function getUpdateHistory(limit = 10): unknown[] {
+  return db
+    .prepare('SELECT * FROM update_history ORDER BY id DESC LIMIT ?')
+    .all(limit);
+}
+
+export function saveAlert(alert: {
+  timestamp: number;
+  type: string;
+  severity: string;
+  title: string;
+  message: string;
+  detail?: string;
+}): void {
+  db.prepare(
+    'INSERT INTO alert_history (timestamp, type, severity, title, message, detail) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(alert.timestamp, alert.type, alert.severity, alert.title, alert.message, alert.detail || null);
+}
+
+export function dismissAlertInDb(id: number): void {
+  db.prepare('UPDATE alert_history SET dismissed = 1 WHERE id = ?').run(id);
+}
+
+export function getAlertHistoryFromDb(limit = 100): unknown[] {
+  return db
+    .prepare('SELECT * FROM alert_history ORDER BY id DESC LIMIT ?')
+    .all(limit);
+}
+
+export function saveHealthScore(score: {
+  total: number;
+  grade: string;
+  categories: unknown;
+}): void {
+  db.prepare(
+    'INSERT INTO health_history (timestamp, overall_score, grade, breakdown) VALUES (?, ?, ?, ?)'
+  ).run(Date.now(), score.total, score.grade, JSON.stringify(score.categories));
+}
+
+export function getHealthHistoryFromDb(limit = 24): unknown[] {
+  return db
+    .prepare(
+      'SELECT timestamp, overall_score AS score, grade FROM health_history ORDER BY id DESC LIMIT ?'
+    )
+    .all(limit);
 }
