@@ -1,0 +1,42 @@
+## PCHelper UI Polish — TitleBar + Settings + Icons
+
+Current state: 47 source files, 15,510 lines, zero TS errors. Dark theme (AIDA64-style).
+
+### Task 1: Enhance TitleBar (`src/components/TitleBar/index.tsx`)
+Current: Simple bar with "PCHelper" label, page name, min/max/close buttons.
+Enhancements needed:
+- Add the app icon from `assets/icon_16x16.png` (display as <img>) on the left before "PCHelper"
+- Restore `-webkit-app-region: drag` for window dragging
+- Add `pchelper:is-maximized` IPC handler in main.ts + `isMaximized` bridge in preload.ts
+- TitleBar shows "□" when not maximized, "❐" (restore icon) when maximized — track state
+- Double-click title bar to toggle maximize/restore via existing maximize handler
+- Style: PCHelper logo+label left, page label centered, controls right-aligned (VS Code style)
+
+### Task 2: Enhance Settings Page (`src/components/SettingsView/index.tsx`)
+Current: Basic three-card layout (AI Config, Hardware Monitoring, About).
+Enhancements needed:
+- **Better organization**: Use section headers with collapsible cards (default open):
+  1. AI & API (existing with improvements)
+  2. Monitoring (existing + enable/disable toggle)
+  3. Notifications (new): enable/disable alerts, auto-dismiss minutes
+  4. Display (new): theme dropdown (Dark/Light/System), language (English/中文)
+  5. Data Management (new): Export Settings, Reset to Defaults, Clear Local Data (each requires user confirm)
+  6. About (existing + app icon, build info, tech stack)
+- **AI Test Connection**: Add "Test Connection" button near API key. Calls `window.pchelper.testAiConnection()`. Show loading/green check/red X status indicator.
+
+### Task 3: Update electron/main.ts
+- Add `pchelper:is-maximized` handler
+- Add `pchelper:test-ai-connection` handler (simple ping to AI endpoint)
+- Update `pchelper:maximize-window` to emit `pchelper:window-state-changed` to renderer
+
+### Task 4: Update electron/preload.ts
+- Add `isMaximized`, `testAiConnection`, `onWindowStateChange` bridges
+
+### Task 5: Update src/types/global.d.ts
+- Add all new method declarations
+
+### IMPORTANT:
+- After ALL changes: `npx tsc --noEmit` (zero errors required)
+- npm install already done, do NOT re-run it
+- Only add new handlers, do NOT modify existing ones
+- Keep the existing dark theme consistent

@@ -42,6 +42,12 @@ function createWindow(): void {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
+  mainWindow.on('maximize', () => {
+    mainWindow?.webContents.send('pchelper:window-state-changed', true);
+  });
+  mainWindow.on('unmaximize', () => {
+    mainWindow?.webContents.send('pchelper:window-state-changed', false);
+  });
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -56,9 +62,32 @@ function registerIpcHandlers(): void {
     } else {
       mainWindow?.maximize();
     }
+    mainWindow?.webContents.send('pchelper:window-state-changed', mainWindow?.isMaximized() ?? false);
   });
+  ipcMain.handle('pchelper:is-maximized', () => mainWindow?.isMaximized() ?? false);
   ipcMain.handle('pchelper:close-window', () => mainWindow?.close());
   ipcMain.handle('pchelper:get-app-version', () => app.getVersion());
+
+  // AI connection test
+  ipcMain.handle('pchelper:test-ai-connection', async (_event, endpoint: string, model: string, apiKey: string) => {
+    try {
+      const url = `${endpoint}/v1/models`;
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+      });
+      if (!response.ok) {
+        return { success: false, error: `HTTP ${response.status}` };
+      }
+      const data = await response.json();
+      return { success: true, models: Array.isArray(data.data) ? data.data.length : undefined };
+    } catch (err) {
+      return { success: false, error: String(err) };
+    }
+  });
 
   // Hardware
   hardwareCollector = new HardwareCollector();
@@ -380,6 +409,19 @@ function registerIpcHandlers(): void {
   ipcMain.handle('pchelper:get-health-history', (_event, limit?: number) =>
     getHealthHistoryFromDb(limit ?? 24)
   );
+
+  // Settings management
+  ipcMain.handle('pchelper:clear-local-data', () => {
+    const db = getDatabase();
+    db.prepare('DELETE FROM ai_chat_history').run();
+    db.prepare('DELETE FROM alert_history').run();
+    db.prepare('DELETE FROM health_history').run();
+    db.prepare('DELETE FROM hardware_history').run();
+    db.prepare('DELETE FROM conflict_log').run();
+    db.prepare('DELETE FROM update_history').run();
+    db.prepare('DELETE FROM settings').run();
+    return { success: true };
+  });
 
   // External links
   ipcMain.handle('pchelper:open-external', (_event, url: string) => {

@@ -86,6 +86,22 @@ contextBridge.exposeInMainWorld('pchelper', {
   getAppVersion: () => ipcRenderer.invoke('pchelper:get-app-version'),
   minimizeWindow: () => ipcRenderer.invoke('pchelper:minimize-window'),
   maximizeWindow: () => ipcRenderer.invoke('pchelper:maximize-window'),
+  isMaximized: () => ipcRenderer.invoke('pchelper:is-maximized'),
   closeWindow: () => ipcRenderer.invoke('pchelper:close-window'),
   openExternal: (url: string) => ipcRenderer.invoke('pchelper:open-external', url),
+
+  // AI
+  testAiConnection: (endpoint: string, model: string, apiKey: string) =>
+    ipcRenderer.invoke('pchelper:test-ai-connection', endpoint, model, apiKey),
+
+  clearLocalData: () => ipcRenderer.invoke('pchelper:clear-local-data'),
+
+  onWindowStateChange: (callback: (isMaximized: boolean) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, isMaximized: boolean) =>
+      callback(isMaximized);
+    ipcRenderer.on('pchelper:window-state-changed', handler);
+    return () => {
+      ipcRenderer.removeListener('pchelper:window-state-changed', handler);
+    };
+  },
 });

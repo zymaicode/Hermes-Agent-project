@@ -62,8 +62,20 @@ declare global {
       getAppVersion: () => Promise<string>;
       minimizeWindow: () => Promise<void>;
       maximizeWindow: () => Promise<void>;
+      isMaximized: () => Promise<boolean>;
       closeWindow: () => Promise<void>;
       openExternal: (url: string) => Promise<void>;
+
+      // AI
+      testAiConnection: (
+        endpoint: string,
+        model: string,
+        apiKey: string
+      ) => Promise<{ success: boolean; error?: string; models?: number }>;
+
+      clearLocalData: () => Promise<{ success: boolean }>;
+
+      onWindowStateChange: (callback: (isMaximized: boolean) => void) => () => void;
     };
   }
 }
