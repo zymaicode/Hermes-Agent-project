@@ -1,4 +1,4 @@
-import type { HardwareSnapshot, SoftwareEntry, ConflictReport, AppEntry, UninstallResult, UpdateScanResult, Alert, HealthScore, StartupEntry, StartupImpact, NetworkInterface, NetworkTraffic, SpeedTestResult } from '../utils/types';
+import type { HardwareSnapshot, SoftwareEntry, ConflictReport, AppEntry, UninstallResult, UpdateScanResult, Alert, HealthScore, StartupEntry, StartupImpact, NetworkInterface, NetworkTraffic, SpeedTestResult, ProcessEntry, SystemInfo, BenchmarkResult, ScheduledTask } from '../utils/types';
 
 export {};
 
@@ -87,6 +87,22 @@ declare global {
       getNetworkInterfaces: () => Promise<NetworkInterface[]>;
       getNetworkTraffic: () => Promise<NetworkTraffic>;
       runSpeedTest: () => Promise<SpeedTestResult>;
+
+      // Process Monitor
+      getProcesses: () => Promise<ProcessEntry[]>;
+      killProcess: (pid: number) => Promise<{ success: boolean; message: string }>;
+      getProcessDetail: (pid: number) => Promise<(ProcessEntry & { children: number[]; cpuHistory: number[]; memHistory: number[] }) | null>;
+
+      // System Info
+      getSystemInfo: () => Promise<SystemInfo>;
+
+      // Benchmark
+      runBenchmark: (onProgress: (pct: number, phase: string) => void) => Promise<BenchmarkResult>;
+      getBenchmarkHistory: () => Promise<BenchmarkResult[]>;
+
+      // Scheduled Tasks
+      getScheduledTasks: () => Promise<ScheduledTask[]>;
+      getTaskDetail: (name: string) => Promise<(ScheduledTask & { conditions: string[]; settings: string[] }) | null>;
     };
   }
 }

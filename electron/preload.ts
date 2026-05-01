@@ -117,4 +117,27 @@ contextBridge.exposeInMainWorld('pchelper', {
   getNetworkInterfaces: () => ipcRenderer.invoke('pchelper:get-network-interfaces'),
   getNetworkTraffic: () => ipcRenderer.invoke('pchelper:get-network-traffic'),
   runSpeedTest: () => ipcRenderer.invoke('pchelper:run-speed-test'),
+
+  // Process Monitor
+  getProcesses: () => ipcRenderer.invoke('pchelper:get-processes'),
+  killProcess: (pid: number) => ipcRenderer.invoke('pchelper:kill-process', pid),
+  getProcessDetail: (pid: number) => ipcRenderer.invoke('pchelper:get-process-detail', pid),
+
+  // System Info
+  getSystemInfo: () => ipcRenderer.invoke('pchelper:get-system-info'),
+
+  // Benchmark
+  runBenchmark: (onProgress: (pct: number, phase: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { pct: number; phase: string }) =>
+      onProgress(data.pct, data.phase);
+    ipcRenderer.on('pchelper:benchmark-progress', handler);
+    return ipcRenderer.invoke('pchelper:run-benchmark').finally(() => {
+      ipcRenderer.removeListener('pchelper:benchmark-progress', handler);
+    });
+  },
+  getBenchmarkHistory: () => ipcRenderer.invoke('pchelper:get-benchmark-history'),
+
+  // Scheduled Tasks
+  getScheduledTasks: () => ipcRenderer.invoke('pchelper:get-scheduled-tasks'),
+  getTaskDetail: (name: string) => ipcRenderer.invoke('pchelper:get-task-detail', name),
 });

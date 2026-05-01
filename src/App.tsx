@@ -14,6 +14,10 @@ import SettingsView from './components/SettingsView';
 import StartupView from './components/StartupView';
 import NetworkView from './components/NetworkView';
 import TemperatureView from './components/TemperatureView';
+import ProcessView from './components/ProcessView';
+import SystemInfoView from './components/SystemInfoView';
+import BenchmarkView from './components/BenchmarkView';
+import SchedulerView from './components/SchedulerView';
 import TitleBar from './components/TitleBar';
 import { useAppStore } from './stores/appStore';
 import { useHardwareStore } from './stores/hardwareStore';
@@ -48,6 +52,14 @@ function MainContent() {
       return <NetworkView />;
     case 'temperatures':
       return <TemperatureView />;
+    case 'process':
+      return <ProcessView />;
+    case 'system':
+      return <SystemInfoView />;
+    case 'benchmark':
+      return <BenchmarkView />;
+    case 'scheduler':
+      return <SchedulerView />;
     default:
       return <Dashboard />;
   }

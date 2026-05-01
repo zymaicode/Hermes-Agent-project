@@ -10,6 +10,10 @@ import { AlertEngine } from './alerter/engine';
 import { calculateHealthScore } from './health/scorer';
 import { StartupManager } from './startup/manager';
 import { NetworkMonitor } from './network/monitor';
+import { ProcessMonitor } from './process/monitor';
+import { SystemInfoCollector } from './system/info';
+import { BenchmarkRunner } from './benchmark/runner';
+import { SchedulerReader } from './scheduler/reader';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -21,6 +25,10 @@ const softwareUpdater = new SoftwareUpdater();
 const alertEngine = new AlertEngine();
 const startupManager = new StartupManager();
 const networkMonitor = new NetworkMonitor();
+const processMonitor = new ProcessMonitor();
+const systemInfoCollector = new SystemInfoCollector();
+const benchmarkRunner = new BenchmarkRunner();
+const schedulerReader = new SchedulerReader();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -442,6 +450,49 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('pchelper:run-speed-test', () =>
     networkMonitor.getSpeedTestResults()
+  );
+
+  // Process Monitor
+  ipcMain.handle('pchelper:get-processes', () =>
+    processMonitor.getProcesses()
+  );
+
+  ipcMain.handle('pchelper:kill-process', (_event, pid: number) =>
+    processMonitor.killProcess(pid)
+  );
+
+  ipcMain.handle('pchelper:get-process-detail', (_event, pid: number) =>
+    processMonitor.getProcessDetail(pid)
+  );
+
+  // System Info
+  ipcMain.handle('pchelper:get-system-info', () =>
+    systemInfoCollector.getSystemInfo()
+  );
+
+  // Benchmark
+  ipcMain.handle('pchelper:run-benchmark', async (_event) => {
+    return new Promise((resolve) => {
+      benchmarkRunner.runBenchmark((pct, phase) => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('pchelper:benchmark-progress', { pct, phase });
+        }
+      }).then(resolve);
+    });
+  });
+
+  ipcMain.handle('pchelper:get-benchmark-history', () => {
+    const last = benchmarkRunner.getLastResult();
+    return last ? [last] : [];
+  });
+
+  // Scheduled Tasks
+  ipcMain.handle('pchelper:get-scheduled-tasks', () =>
+    schedulerReader.getScheduledTasks()
+  );
+
+  ipcMain.handle('pchelper:get-task-detail', (_event, name: string) =>
+    schedulerReader.getTaskDetail(name)
   );
 
   // Settings management

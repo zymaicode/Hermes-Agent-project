@@ -14,6 +14,9 @@ import {
   Zap,
   Wifi,
   Thermometer,
+  Activity,
+  Gauge,
+  Calendar,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { useConflictStore } from '../../stores/conflictStore';
@@ -41,6 +44,10 @@ const navItems: NavItem[] = [
   { id: 'alerts', label: 'Alerts', icon: Bell },
   { id: 'health', label: 'Health', icon: Heart },
   { id: 'temperatures', label: 'Temps', icon: Thermometer },
+  { id: 'process', label: 'Processes', icon: Activity },
+  { id: 'system', label: 'System', icon: Monitor },
+  { id: 'benchmark', label: 'Benchmark', icon: Gauge },
+  { id: 'scheduler', label: 'Tasks', icon: Calendar },
   { id: 'ai', label: 'AI Chat', icon: MessageSquare },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];

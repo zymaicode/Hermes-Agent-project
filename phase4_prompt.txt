@@ -1,0 +1,244 @@
+## PCHelper — Phase 4: Process Monitor + System Info + Benchmark + Scheduled Tasks
+
+Current project: 47 files, 9,043 lines, zero TS errors. Dark theme (AIDA64-style).
+
+### Task 1: Process Monitor (`electron/process/monitor.ts` + `src/components/ProcessView/index.tsx` + store)
+
+Backend (`electron/process/monitor.ts`):
+```typescript
+export interface ProcessEntry {
+  pid: number;
+  name: string;
+  cpuPercent: number;
+  memoryMB: number;
+  memoryPercent: number;
+  status: 'running' | 'suspended' | 'stopped';
+  user: string;
+  priority: string;
+  startTime: string;
+  threads: number;
+  handles: number;
+  commandLine: string;
+  description: string;
+  path: string;
+}
+
+export class ProcessMonitor {
+  getProcesses(): ProcessEntry[] {
+    // Simulate: 40-50 realistic Windows processes
+    // Mix of system processes (svchost, System, explorer, etc.)
+    // and common apps (chrome, vs code, spotify, discord, etc.)
+    // CPU% should vary (most idle at 0-3%, some active apps 5-20%)
+  }
+
+  killProcess(pid: number): { success: boolean; message: string } {
+    // Simulate: kill by pid, reject system processes
+  }
+
+  getProcessDetail(pid: number): ProcessEntry & { children: number[]; cpuHistory: number[]; memHistory: number[] } {
+    // Return detailed info for selected process
+  }
+}
+```
+
+IPC handlers (add to `electron/main.ts`):
+- `pchelper:get-processes` → return all processes
+- `pchelper:kill-process` → kill by PID
+- `pchelper:get-process-detail` → return detailed info
+
+UI (`src/components/ProcessView/index.tsx`):
+- **Top bar**: search input + filter by status dropdown + kill selected button (danger red)
+- **Stats row**: total processes count, total memory used, top CPU process name, top memory process name
+- **Table**: PID, Name (with icon/emoji), CPU% (small bar), Memory (bar), Status (badge), User, Threads, Priority
+  - Click row header to sort (click again to reverse)
+  - Click row to expand detail panel
+- **Detail panel** (expanded row): full info + small cpuHistory sparkline + memHistory sparkline
+- **Auto-refresh**: every 3 seconds
+- Search filters across name, pid, user
+- Kill button with confirmation (system processes show warning)
+
+### Task 2: System Information (`electron/system/info.ts` + `src/components/SystemInfoView/index.tsx`)
+
+Backend (`electron/system/info.ts`):
+```typescript
+export interface SystemInfo {
+  os: {
+    name: string;
+    version: string;
+    buildNumber: string;
+    architecture: string;
+    edition: string;
+    installDate: string;
+    uptime: string; // "3d 12h 34m"
+    lastBoot: string;
+  };
+  computer: {
+    name: string;
+    manufacturer: string;
+    model: string;
+    biosVendor: string;
+    biosVersion: string;
+    biosDate: string;
+    serialNumber: string;
+  };
+  environment: {
+    variables: Array<{ name: string; value: string }>;
+    processorCount: number;
+    logicalProcessors: number;
+  };
+  power: {
+    powerSource: 'AC' | 'Battery';
+    batteryPercent?: number;
+    batteryRemaining?: string; // "2h 15m"
+    batteryHealth?: string; // percentage
+  };
+}
+
+export class SystemInfoCollector {
+  getSystemInfo(): SystemInfo {
+    // Simulate: realistic Windows 11 system
+    // 30 environment variables (PATH, TEMP, USERNAME, etc.)
+  }
+}
+```
+
+IPC handlers:
+- `pchelper:get-system-info` → full system info
+
+UI (`src/components/SystemInfoView/index.tsx`):
+- Clean card-based layout organized by section
+- **OS section**: name, version, build, architecture, uptime with a large card showing "Windows 11 Pro" prominently
+- **Computer section**: manufacturer, model, BIOS, serial
+- **Environment Variables**: expandable list (default collapsed, 30 vars), searchable
+- **Power section**: AC/Battery status icon, battery gauge if on battery
+- No auto-refresh (static data), but has refresh button
+
+### Task 3: Performance Benchmark (`electron/benchmark/runner.ts` + `src/components/BenchmarkView/index.tsx` + store)
+
+Backend (`electron/benchmark/runner.ts`):
+```typescript
+export interface BenchmarkResult {
+  cpu: {
+    singleCore: { score: number; operations: number; ms: number };
+    multiCore: { score: number; operations: number; ms: number };
+    description: string; // e.g., "Performs 1.2M integer ops/s"
+  };
+  memory: {
+    readSpeed: { score: number; mbps: number };
+    writeSpeed: { score: number; mbps: number };
+    latency: { score: number; ns: number };
+  };
+  disk: {
+    sequentialRead: { score: number; mbps: number };
+    sequentialWrite: { score: number; mbps: number };
+    randomRead: { score: number; iops: number };
+    randomWrite: { score: number; iops: number };
+  };
+  overall: {
+    score: number;
+    grade: 'Excellent' | 'Good' | 'Fair' | 'Poor';
+    percentile: number; // comparison to similar systems
+  };
+  timestamp: number;
+}
+
+export class BenchmarkRunner {
+  private running = false;
+  
+  isRunning(): boolean { return this.running; }
+
+  async runBenchmark(progress: (pct: number, phase: string) => void): Promise<BenchmarkResult> {
+    // Simulate: progressive benchmark taking ~15 seconds
+    // Phase 1 (0-30%): CPU single-core test — 4s
+    // Phase 2 (30-50%): CPU multi-core test — 3s
+    // Phase 3 (50-70%): Memory test — 3s
+    // Phase 4 (70-90%): Disk test — 3s
+    // Phase 5 (90-100%): Calculating results — 2s
+    // Return realistic modern system scores (high-end desktop)
+    // Overall score: ~8000-15000 range (higher = better)
+  }
+
+  getLastResult(): BenchmarkResult | null {
+    // Return cached result
+  }
+}
+```
+
+IPC handlers:
+- `pchelper:run-benchmark` → runs benchmark, emits progress events
+- `pchelper:get-benchmark-history` → cached/past results
+
+Preload additions:
+- `runBenchmark` bridge
+- `onBenchmarkProgress(callback)` → for progress updates
+- `getBenchmarkHistory`
+
+UI (`src/components/BenchmarkView/index.tsx`):
+- **Main state**: Idle (show last result or empty state) / Running (show progress) / Done (show result)
+- **Idle state**: "Run Benchmark" big button, info text ("Takes ~15 seconds, won't affect system stability")
+- **Running state**: Progress bar with phase description, spinning animation, CPU/memory real-time mini gauges
+- **Done state**: 
+  - Overall score big number (semi-circle gauge, color-coded)
+  - CPU section: single-core score + multi-core score + description
+  - Memory section: read/write/latency with speed bars
+  - Disk section: sequential/random read/write with bars
+  - Comparison: "Faster than X% of similar systems"
+  - "Run Again" button
+- Nice transitions between states
+
+### Task 4: Scheduled Tasks Viewer (`electron/scheduler/reader.ts` + `src/components/SchedulerView/index.tsx`)
+
+Backend (`electron/scheduler/reader.ts`):
+```typescript
+export interface ScheduledTask {
+  name: string;
+  path: string;
+  status: 'ready' | 'running' | 'disabled';
+  triggers: string[]; // e.g., "At 3:00 AM every day", "At logon", "At system startup"
+  nextRun: string | null;
+  lastRun: string | null;
+  lastResult: 'success' | 'failure' | 'no_info';
+  author: string;
+  created: string;
+  description: string;
+  actions: string[]; // e.g., "C:\Windows\System32\cleanmgr.exe"
+}
+
+export class SchedulerReader {
+  getScheduledTasks(): ScheduledTask[] {
+    // Simulate: 25+ realistic Windows scheduled tasks
+    // Include: Windows Update, Defender Scan, Disk Cleanup, 
+    // Software Update Checkers, Google Update, Adobe Update,
+    // System Maintenance, Registry Backup, etc.
+    // Mix of ready/running/disabled, various trigger types
+  }
+
+  getTaskDetail(name: string): ScheduledTask & { conditions: string[]; settings: string[] } {
+    // Return detailed task info
+  }
+}
+```
+
+IPC handlers:
+- `pchelper:get-scheduled-tasks` → all tasks
+- `pchelper:get-task-detail` → detailed
+
+UI (`src/components/SchedulerView/index.tsx`):
+- **Top bar**: search + filter by status (All / Ready / Running / Disabled) + filter by trigger type
+- **Summary cards row**: total tasks count, disabled count, tasks due today count, tasks failed count
+- **Table**: Name, Status (badge: green=ready, blue=running, gray=disabled), Triggers (comma truncated), Next Run, Last Run Result
+  - Sortable columns
+  - Click row to expand detail
+- **Detail panel**: full triggers list, actions list, conditions, settings, author, created date
+- Search across name and path
+
+### IMPORTANT RULES:
+1. After ALL changes: `npx tsc --noEmit` (zero errors required)
+2. npm install already done, do NOT re-run it
+3. Do NOT modify existing working code unless necessary for integration
+4. Keep the dark theme consistent
+5. All simulated data should be realistic, varied, and dynamic
+6. Sidebar should show new nav items in logical order: after Temps, before AI Chat
+7. App.tsx switch statement needs 4 new cases
+8. types.ts NavPage union: 'process' | 'system' | 'benchmark' | 'scheduler'
+9. New nav icons: Activity (process), Monitor (system), Gauge (benchmark), Calendar (scheduler)

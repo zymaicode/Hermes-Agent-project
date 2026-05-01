@@ -154,7 +154,7 @@ export interface Alert {
   threshold?: number;
 }
 
-export type NavPage = 'dashboard' | 'hardware' | 'software' | 'apps' | 'conflicts' | 'updates' | 'alerts' | 'health' | 'ai' | 'settings' | 'startup' | 'network' | 'temperatures';
+export type NavPage = 'dashboard' | 'hardware' | 'software' | 'apps' | 'conflicts' | 'updates' | 'alerts' | 'health' | 'ai' | 'settings' | 'startup' | 'network' | 'temperatures' | 'process' | 'system' | 'benchmark' | 'scheduler';
 
 export interface StartupEntry {
   name: string;
@@ -236,4 +236,93 @@ export interface AppSettings {
   ai_model: string;
   ai_api_key: string;
   refresh_interval: string;
+}
+
+export interface ProcessEntry {
+  pid: number;
+  name: string;
+  cpuPercent: number;
+  memoryMB: number;
+  memoryPercent: number;
+  status: 'running' | 'suspended' | 'stopped';
+  user: string;
+  priority: string;
+  startTime: string;
+  threads: number;
+  handles: number;
+  commandLine: string;
+  description: string;
+  path: string;
+}
+
+export interface SystemInfo {
+  os: {
+    name: string;
+    version: string;
+    buildNumber: string;
+    architecture: string;
+    edition: string;
+    installDate: string;
+    uptime: string;
+    lastBoot: string;
+  };
+  computer: {
+    name: string;
+    manufacturer: string;
+    model: string;
+    biosVendor: string;
+    biosVersion: string;
+    biosDate: string;
+    serialNumber: string;
+  };
+  environment: {
+    variables: Array<{ name: string; value: string }>;
+    processorCount: number;
+    logicalProcessors: number;
+  };
+  power: {
+    powerSource: 'AC' | 'Battery';
+    batteryPercent?: number;
+    batteryRemaining?: string;
+    batteryHealth?: string;
+  };
+}
+
+export interface BenchmarkResult {
+  cpu: {
+    singleCore: { score: number; operations: number; ms: number };
+    multiCore: { score: number; operations: number; ms: number };
+    description: string;
+  };
+  memory: {
+    readSpeed: { score: number; mbps: number };
+    writeSpeed: { score: number; mbps: number };
+    latency: { score: number; ns: number };
+  };
+  disk: {
+    sequentialRead: { score: number; mbps: number };
+    sequentialWrite: { score: number; mbps: number };
+    randomRead: { score: number; iops: number };
+    randomWrite: { score: number; iops: number };
+  };
+  overall: {
+    score: number;
+    grade: 'Excellent' | 'Good' | 'Fair' | 'Poor';
+    percentile: number;
+  };
+  timestamp: number;
+}
+
+export interface ScheduledTask {
+  name: string;
+  path: string;
+  status: 'ready' | 'running' | 'disabled';
+  triggers: string[];
+  nextRun: string | null;
+  lastRun: string | null;
+  lastResult: 'success' | 'failure' | 'no_info';
+  author: string;
+  created: string;
+  description: string;
+  actions: string[];
 }
