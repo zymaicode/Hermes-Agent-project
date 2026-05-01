@@ -41,6 +41,8 @@ import { RepairEngine } from './repair/engine';
 import { RepairAiAssistant } from './repair/ai';
 import { BluescreenAnalyzer } from './repair/bluescreen';
 import { runSfcScan, runDismRestore } from './repair/sfc';
+import { OverlayManager } from './overlay/overlayManager';
+import { OverlayDataCollector } from './overlay/dataCollector';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -81,6 +83,8 @@ const soundManager = new SoundManager();
 const fontManager = new FontManager();
 const repairEngine = new RepairEngine();
 const bluescreenAnalyzer = new BluescreenAnalyzer();
+const overlayManager = new OverlayManager();
+const overlayCollector = new OverlayDataCollector();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -1072,6 +1076,38 @@ function registerIpcHandlers(): void {
     runDismRestore()
   );
 
+  // Performance Overlay
+  // Wire data collector to push metrics to overlay window
+  overlayCollector.onData((data) => {
+    overlayManager.sendMetrics(data);
+  });
+
+  ipcMain.handle('pchelper:overlay-toggle', (_event, enabled: boolean) => {
+    if (enabled) {
+      overlayManager.toggle(true);
+      overlayCollector.start(overlayManager.getConfig().refreshInterval);
+    } else {
+      overlayManager.toggle(false);
+      overlayCollector.stop();
+    }
+  });
+
+  ipcMain.handle('pchelper:overlay-update-config', (_event, config: Partial<import('./overlay/overlayManager').OverlayWinConfig>) => {
+    overlayManager.updateConfig(config);
+    if (config.refreshInterval && overlayManager.isActive) {
+      overlayCollector.start(config.refreshInterval);
+    }
+  });
+
+  ipcMain.handle('pchelper:overlay-get-status', () => ({
+    active: overlayManager.isActive,
+    config: overlayManager.getConfig(),
+  }));
+
+  ipcMain.handle('pchelper:overlay-get-metrics', () =>
+    overlayManager.getMetrics()
+  );
+
   // Settings management
   ipcMain.handle('pchelper:clear-local-data', () => {
     const db = getDatabase();
@@ -1105,6 +1141,8 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   hardwareCollector?.stopPolling();
+  overlayCollector.stop();
+  overlayManager.destroy();
   if (process.platform !== 'darwin') {
     app.quit();
   }

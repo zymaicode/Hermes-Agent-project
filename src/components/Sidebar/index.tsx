@@ -37,6 +37,7 @@ import {
   Package,
   Volume2,
   Type,
+  Eye,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { useConflictStore } from '../../stores/conflictStore';
@@ -57,6 +58,7 @@ const navSections: { heading: string; items: NavItem[] }[] = [
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { id: 'repair', label: 'Repair', icon: Wrench },
+      { id: 'overlay', label: 'Overlay', icon: Eye },
       { id: 'hardware', label: 'Hardware', icon: Cpu },
       { id: 'memory', label: 'Memory', icon: MemoryStick },
       { id: 'software', label: 'Software', icon: Monitor },

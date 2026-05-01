@@ -369,6 +369,41 @@ declare global {
       elevateRepairPrivileges: () => Promise<{ success: boolean }>;
       runSfcScan: () => Promise<{ success: boolean; foundCorruption: boolean; repairedFiles: number; logPath: string; details: string[]; duration: number }>;
       runDismRestore: () => Promise<{ success: boolean; stage: string; progress: number; details: string[]; duration: number }>;
+
+      // Performance Overlay
+      togglePerfOverlay: (enabled: boolean) => Promise<void>;
+      updateOverlayConfig: (config: OverlayConfigPartial) => Promise<void>;
+      getOverlayStatus: () => Promise<{ active: boolean; config: OverlayConfigFull }>;
+      getOverlayMetrics: () => Promise<OverlayMetricsData | null>;
     };
   }
+
+  interface OverlayMetricsData {
+    cpu: { usage: number; temp: number };
+    memory: { used: number; total: number; usage: number };
+    gpu: { usage: number; temp: number; memoryUsed: number; memoryTotal: number };
+    fps: { current: number; min: number; max: number };
+    network: { uploadSpeed: number; downloadSpeed: number };
+    timestamp: number;
+  }
+
+  interface OverlayConfigFull {
+    enabled: boolean;
+    position: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left';
+    opacity: number;
+    metrics: {
+      showCpu: boolean;
+      showMemory: boolean;
+      showGpu: boolean;
+      showFps: boolean;
+      showNetwork: boolean;
+    };
+    fontSize: number;
+    refreshInterval: number;
+    clickThrough: boolean;
+    autoHide: boolean;
+    accentColor: string;
+  }
+
+  type OverlayConfigPartial = Partial<OverlayConfigFull>;
 }

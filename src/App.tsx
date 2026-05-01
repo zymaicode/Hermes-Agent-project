@@ -42,6 +42,7 @@ import FeaturesView from './components/FeaturesView';
 import SoundView from './components/SoundView';
 import FontView from './components/FontView';
 import RepairCenter from './components/RepairCenter';
+import PerfOverlay from './components/PerfOverlay';
 import TitleBar from './components/TitleBar';
 import { useAppStore } from './stores/appStore';
 import { useHardwareStore } from './stores/hardwareStore';
@@ -54,6 +55,8 @@ function MainContent() {
       return <Dashboard />;
     case 'repair':
       return <RepairCenter />;
+    case 'overlay':
+      return <PerfOverlay />;
     case 'hardware':
       return <HardwareView />;
     case 'software':

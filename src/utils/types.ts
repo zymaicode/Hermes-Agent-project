@@ -154,7 +154,7 @@ export interface Alert {
   threshold?: number;
 }
 
-export type NavPage = 'dashboard' | 'repair' | 'hardware' | 'software' | 'apps' | 'conflicts' | 'updates' | 'alerts' | 'health' | 'ai' | 'settings' | 'startup' | 'network' | 'temperatures' | 'process' | 'system' | 'benchmark' | 'scheduler' | 'firewall' | 'usb' | 'diskcleanup' | 'security' | 'clipboard' | 'drivers' | 'services' | 'eventlog' | 'battery' | 'perflog' | 'registry' | 'netconn' | 'filetypes' | 'display' | 'power' | 'restore' | 'filescanner' | 'remote' | 'report' | 'memory' | 'features' | 'sounds' | 'fonts';
+export type NavPage = 'dashboard' | 'repair' | 'overlay' | 'hardware' | 'software' | 'apps' | 'conflicts' | 'updates' | 'alerts' | 'health' | 'ai' | 'settings' | 'startup' | 'network' | 'temperatures' | 'process' | 'system' | 'benchmark' | 'scheduler' | 'firewall' | 'usb' | 'diskcleanup' | 'security' | 'clipboard' | 'drivers' | 'services' | 'eventlog' | 'battery' | 'perflog' | 'registry' | 'netconn' | 'filetypes' | 'display' | 'power' | 'restore' | 'filescanner' | 'remote' | 'report' | 'memory' | 'features' | 'sounds' | 'fonts';
 
 export interface StartupEntry {
   name: string;

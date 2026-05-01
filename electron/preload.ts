@@ -331,4 +331,14 @@ contextBridge.exposeInMainWorld('pchelper', {
   elevateRepairPrivileges: () => ipcRenderer.invoke('pchelper:repair-elevate'),
   runSfcScan: () => ipcRenderer.invoke('pchelper:repair-run-sfc'),
   runDismRestore: () => ipcRenderer.invoke('pchelper:repair-run-dism'),
+
+  // Performance Overlay
+  togglePerfOverlay: (enabled: boolean) =>
+    ipcRenderer.invoke('pchelper:overlay-toggle', enabled),
+  updateOverlayConfig: (config: unknown) =>
+    ipcRenderer.invoke('pchelper:overlay-update-config', config),
+  getOverlayStatus: () =>
+    ipcRenderer.invoke('pchelper:overlay-get-status'),
+  getOverlayMetrics: () =>
+    ipcRenderer.invoke('pchelper:overlay-get-metrics'),
 });

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    -webkit-app-region: drag;
+    user-select: none;
+  }
+  #overlay {
+    width: 100%;
+    height: 100%;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    justify-content: center;
+    background: transparent;
+  }
+  .metric {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #e0e0e0;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  }
+  .metric .label {
+    width: 46px;
+    text-align: right;
+    font-weight: 600;
+    flex-shrink: 0;
+    color: var(--accent);
+  }
+  .metric .bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+  .metric .bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+    background: var(--bar-color, #4fc3f7);
+  }
+  .metric .val {
+    width: 42px;
+    text-align: right;
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 10px;
+    flex-shrink: 0;
+    color: #ccc;
+  }
+  .metric.fps-row { margin-top: 2px; }
+  .metric.fps-row .val { font-size: 12px; font-weight: 600; }
+  .metric.net-row .val { font-size: 9px; }
+  .divider { height: 1px; background: rgba(255,255,255,0.06); margin: 2px 0; }
+  .warning .bar { background: var(--yellow); }
+  .danger .bar { background: var(--red); }
+</style>
+</head>
+<body>
+<div id="overlay">
+  <div class="metric" id="cpu">
+    <span class="label">CPU</span>
+    <div class="bar-wrap"><div class="bar" id="cpu-bar"></div></div>
+    <span class="val" id="cpu-val">0%</span>
+  </div>
+  <div class="metric" id="mem">
+    <span class="label">MEM</span>
+    <div class="bar-wrap"><div class="bar" id="mem-bar"></div></div>
+    <span class="val" id="mem-val">0 MB</span>
+  </div>
+  <div class="metric" id="gpu">
+    <span class="label">GPU</span>
+    <div class="bar-wrap"><div class="bar" id="gpu-bar"></div></div>
+    <span class="val" id="gpu-val">0%</span>
+  </div>
+  <div class="divider"></div>
+  <div class="metric fps-row" id="fps">
+    <span class="label">FPS</span>
+    <div class="bar-wrap"></div>
+    <span class="val" id="fps-val" style="color:var(--green)">144</span>
+  </div>
+  <div class="metric net-row" id="net">
+    <span class="label">NET</span>
+    <div class="bar-wrap"></div>
+    <span class="val" id="net-val">0/0 MB/s</span>
+  </div>
+</div>
+<script>
+  (function() {
+    var ipc = null;
+    try {
+      if (window.electronAPI) {
+        ipc = window.electronAPI;
+      }
+    } catch(e) {}
+
+    var accentColor = '#4fc3f7';
+    var visibleMetrics = { showCpu: true, showMemory: true, showGpu: true, showFps: true, showNetwork: true };
+    var fontSize = 'medium';
+
+    var fontSizeMap = { small: '9px', medium: '11px', large: '13px' };
+    var valSizeMap = { small: '9px', medium: '10px', large: '12px' };
+
+    function clamp(n, lo, hi) { return n < lo ? lo : n > hi ? hi : n; }
+
+    function getBarColor(val) {
+      if (val >= 90) return 'var(--red)';
+      if (val >= 70) return 'var(--yellow)';
+      return accentColor;
+    }
+
+    function getFpsColor(fps) {
+      if (fps >= 120) return 'var(--green)';
+      if (fps >= 60) return accentColor;
+      if (fps >= 30) return 'var(--yellow)';
+      return 'var(--red)';
+    }
+
+    function formatBytes(mb) {
+      if (mb >= 1024) return (mb / 1024).toFixed(1) + ' GB';
+      return mb.toFixed(0) + ' MB';
+    }
+
+    window.updateOverlay = function(data) {
+      var cfg = data.config || visibleMetrics;
+      visibleMetrics = cfg.metrics || visibleMetrics;
+      accentColor = cfg.accentColor || accentColor;
+      fontSize = cfg.fontSize || fontSize;
+
+      document.documentElement.style.setProperty('--accent', accentColor);
+
+      var fz = fontSizeMap[fontSize] || '11px';
+      var fzv = valSizeMap[fontSize] || '10px';
+      var metrics = document.querySelectorAll('.metric');
+      metrics.forEach(function(m) {
+        var label = m.querySelector('.label');
+        if (label) { label.style.fontSize = fz; label.style.color = accentColor; }
+        var val = m.querySelector('.val');
+        if (val) val.style.fontSize = fzv;
+      });
+
+      var m = (data && data.metrics) || data || {};
+
+      if (m.cpu) {
+        var cpuEl = document.getElementById('cpu');
+        cpuEl.style.display = visibleMetrics.showCpu ? 'flex' : 'none';
+        document.getElementById('cpu-val').textContent = m.cpu.usage.toFixed(0) + '%';
+        var cpuBar = document.getElementById('cpu-bar');
+        cpuBar.style.width = clamp(m.cpu.usage, 0, 100) + '%';
+        cpuBar.style.background = getBarColor(m.cpu.usage);
+      }
+
+      if (m.memory) {
+        var memEl = document.getElementById('mem');
+        memEl.style.display = visibleMetrics.showMemory ? 'flex' : 'none';
+        document.getElementById('mem-val').textContent = m.memory.usage.toFixed(0) + '%';
+        var memBar = document.getElementById('mem-bar');
+        memBar.style.width = clamp(m.memory.usage, 0, 100) + '%';
+        memBar.style.background = getBarColor(m.memory.usage);
+      }
+
+      if (m.gpu) {
+        var gpuEl = document.getElementById('gpu');
+        gpuEl.style.display = visibleMetrics.showGpu ? 'flex' : 'none';
+        document.getElementById('gpu-val').textContent = m.gpu.usage.toFixed(0) + '%';
+        var gpuBar = document.getElementById('gpu-bar');
+        gpuBar.style.width = clamp(m.gpu.usage, 0, 100) + '%';
+        gpuBar.style.background = getBarColor(m.gpu.usage);
+      }
+
+      if (m.fps) {
+        var fpsEl = document.getElementById('fps');
+        fpsEl.style.display = visibleMetrics.showFps ? 'flex' : 'none';
+        var fpsVal = document.getElementById('fps-val');
+        fpsVal.textContent = m.fps.current;
+        fpsVal.style.color = getFpsColor(m.fps.current);
+      }
+
+      if (m.network) {
+        var netEl = document.getElementById('net');
+        netEl.style.display = visibleMetrics.showNetwork ? 'flex' : 'none';
+        document.getElementById('net-val').textContent =
+          '↓' + m.network.downloadSpeed.toFixed(0) + ' ↑' + m.network.uploadSpeed.toFixed(0) + ' MB/s';
+      }
+    };
+
+    // Listen for data from main process
+    if (ipc) {
+      ipc.on('overlay-metrics', function(metrics) {
+        window.updateOverlay(metrics);
+      });
+    }
+  })();
+</script>
+</body>
+</html>
