@@ -104,4 +104,17 @@ contextBridge.exposeInMainWorld('pchelper', {
       ipcRenderer.removeListener('pchelper:window-state-changed', handler);
     };
   },
+
+  // Startup
+  getStartupApps: () => ipcRenderer.invoke('pchelper:get-startup-apps'),
+  toggleStartupApp: (name: string, enabled: boolean) =>
+    ipcRenderer.invoke('pchelper:toggle-startup-app', name, enabled),
+  disableSelectedStartup: (names: string[]) =>
+    ipcRenderer.invoke('pchelper:disable-selected-startup', names),
+  getStartupImpact: () => ipcRenderer.invoke('pchelper:get-startup-impact'),
+
+  // Network
+  getNetworkInterfaces: () => ipcRenderer.invoke('pchelper:get-network-interfaces'),
+  getNetworkTraffic: () => ipcRenderer.invoke('pchelper:get-network-traffic'),
+  runSpeedTest: () => ipcRenderer.invoke('pchelper:run-speed-test'),
 });

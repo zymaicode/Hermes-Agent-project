@@ -1,0 +1,148 @@
+## PCHelper — Phase 3 Features: Dashboard Charts + Startup Manager + Network Monitor + Temp History
+
+Current project: 54 files, zero TS errors. Dark theme (AIDA64-style). All Phase 2 features complete.
+
+### Task 1: Enhanced Dashboard Charts (`src/components/Dashboard/index.tsx`) + related files
+
+Current state: 4 stat cards (CPU/Memory/Disk/GPU) with MiniSparkline, one area chart for CPU usage.
+Enhancements:
+- **CPU Detail Panel** (expandable on the CPU card): show per-core usage bars (8 simulated cores), clock speed line
+- **Temperature Overview Row**: a row of small cards showing CPU temp, GPU temp, Disk temp — each with a mini area chart showing last 30 seconds trend
+- **Memory Composition Chart**: split memory card to show Used / Cache / Free breakdown as a stacked area chart
+- **Disk Activity Panel**: show read/write speeds for each disk (simulated, random values that change each second)
+- **Auto-refresh**: all new panels should refresh with the existing 1s polling data
+- **Performance History Tab** new section below the 4 cards: small tab bar with "CPU" / "Memory" / "Disk" / "Temperature" tabs. Each tab shows a larger 60-second history chart with the metric.
+
+### Task 2: Startup Manager (`electron/startup/manager.ts` + `src/components/StartupView/index.tsx` + stores)
+
+Backend (`electron/startup/manager.ts`):
+```typescript
+export interface StartupEntry {
+  name: string;
+  path: string;
+  enabled: boolean;
+  type: 'registry' | 'startup_folder' | 'service' | 'scheduled_task';
+  publisher: string;
+  description: string;
+  startupImpact: 'low' | 'medium' | 'high';  // based on estimated load time
+}
+
+export class StartupManager {
+  getStartupApps(): StartupEntry[] {
+    // Simulate: return 15+ realistic Windows startup apps
+    // Include: antivirus, cloud sync, updaters, drivers, launchers
+    // Mix of enabled/disabled, different types, varying impact levels
+  }
+
+  toggleStartupApp(name: string, enabled: boolean): { success: boolean; message: string } {
+    // Simulate: toggle by name
+  }
+
+  disableSelected(names: string[]): { success: number; failed: number; errors: string[] } {
+    // Batch disable
+  }
+
+  getStartupImpact(): { bootTime: number; impactSources: { name: string; seconds: number }[] } {
+    // Estimate boot time impact from enabled startup apps
+  }
+}
+```
+
+IPC handlers (add to `electron/main.ts`):
+- `pchelper:get-startup-apps` → return all startup entries
+- `pchelper:toggle-startup-app` → toggle one app
+- `pchelper:disable-selected-startup` → batch disable
+- `pchelper:get-startup-impact` → return boot time estimate
+
+Preload (`electron/preload.ts`):
+- Add 4 new bridge methods
+
+State store (`src/stores/startupStore.ts`): Zustand store
+- startupApps: StartupEntry[]
+- loading: boolean
+- impact: bootTime estimate
+- fetchStartupApps, toggleApp, disableSelected, fetchImpact
+
+UI (`src/components/StartupView/index.tsx`):
+- Table with columns: checkbox, name, type (show as badge), publisher, impact (color-coded), enabled/disabled toggle
+- Filter by type (All / Registry / Startup Folder / Service / Scheduled Task)
+- Batch disable selected button
+- Boot impact estimate card at top: "Estimated boot delay: X.Xs from Y startup apps"
+- Each impact source shown with a mini bar chart (sorted by impact seconds)
+- Search filter
+- Toggle switch per app
+
+### Task 3: Network Monitor (`electron/network/monitor.ts` + `src/components/NetworkView/index.tsx` + stores)
+
+Backend (`electron/network/monitor.ts`):
+```typescript
+export interface NetworkInterface {
+  name: string;
+  type: 'ethernet' | 'wifi' | 'bluetooth' | 'virtual';
+  status: 'connected' | 'disconnected' | 'limited';
+  ipAddress: string;
+  subnet: string;
+  gateway: string;
+  dns: string[];
+  macAddress: string;
+  speed: number; // Mbps
+  signalStrength?: number; // 0-100, wifi only
+  ssid?: string; // wifi only
+}
+
+export interface NetworkTraffic {
+  downloadSpeed: number; // Mbps
+  uploadSpeed: number; // Mbps
+  totalDownload: number; // GB
+  totalUpload: number; // GB
+  activeConnections: number;
+}
+
+export class NetworkMonitor {
+  getInterfaces(): NetworkInterface[] {
+    // Simulate: 2-3 interfaces (Ethernet + WiFi + maybe virtual)
+  }
+
+  getTraffic(): NetworkTraffic {
+    // Simulate: random traffic values that change each poll
+  }
+
+  getSpeedTestResults(): { download: number; upload: number; ping: number; timestamp: number } {
+    // Simulate: realistic broadband values
+  }
+}
+```
+
+IPC handlers (add to `electron/main.ts`):
+- `pchelper:get-network-interfaces`
+- `pchelper:get-network-traffic`
+- `pchelper:run-speed-test`
+
+UI (`src/components/NetworkView/index.tsx`):
+- Top section: interface cards showing connection status, IP, type, speed
+- Traffic section: live download/upload gauges or sparkline charts (realtime update)
+- Speed test card: Download / Upload / Ping values with a "Run Speed Test" button
+- WiFi details card (when connected to WiFi): SSID, signal strength bar, channel
+- Active connections count
+- Auto-refresh traffic every 2 seconds
+
+### Task 4: Temperature History Page (`src/components/TemperatureView/index.tsx` + stores)
+
+UI enhance to existing hardware monitoring:
+- Dedicated page showing temperature trends
+- 3 charts: CPU temp, GPU temp, Disk temp — each with 60 data points (1 minute) default, toggle to 6 hours (from DB history)
+- Each chart shows: current value, min, max, average over the period
+- Threshold lines on charts (warning=75°C, critical=85°C for CPU)
+- Page accessible from Sidebar navigation
+
+Add to NavPage: 'startup' | 'network' | 'temperatures'
+
+### IMPORTANT RULES:
+1. After ALL changes: `npx tsc --noEmit` (zero errors required)
+2. npm install already done, do NOT re-run it
+3. Do NOT modify existing working code unless necessary for integration
+4. Keep the dark theme consistent
+5. All simulated data should be realistic and dynamic (changes each poll)
+6. Sidebar should show new nav items in logical order
+7. App.tsx switch statement needs new cases
+8. types.ts NavPage union needs updating

@@ -8,6 +8,8 @@ import { AppManager } from './software/manager';
 import { SoftwareUpdater } from './software/updater';
 import { AlertEngine } from './alerter/engine';
 import { calculateHealthScore } from './health/scorer';
+import { StartupManager } from './startup/manager';
+import { NetworkMonitor } from './network/monitor';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -17,6 +19,8 @@ const conflictDetector = new ConflictDetector();
 const appManager = new AppManager();
 const softwareUpdater = new SoftwareUpdater();
 const alertEngine = new AlertEngine();
+const startupManager = new StartupManager();
+const networkMonitor = new NetworkMonitor();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -408,6 +412,36 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('pchelper:get-health-history', (_event, limit?: number) =>
     getHealthHistoryFromDb(limit ?? 24)
+  );
+
+  // Startup Manager
+  ipcMain.handle('pchelper:get-startup-apps', () =>
+    startupManager.getStartupApps()
+  );
+
+  ipcMain.handle('pchelper:toggle-startup-app', (_event, name: string, enabled: boolean) =>
+    startupManager.toggleStartupApp(name, enabled)
+  );
+
+  ipcMain.handle('pchelper:disable-selected-startup', (_event, names: string[]) =>
+    startupManager.disableSelected(names)
+  );
+
+  ipcMain.handle('pchelper:get-startup-impact', () =>
+    startupManager.getStartupImpact()
+  );
+
+  // Network Monitor
+  ipcMain.handle('pchelper:get-network-interfaces', () =>
+    networkMonitor.getInterfaces()
+  );
+
+  ipcMain.handle('pchelper:get-network-traffic', () =>
+    networkMonitor.getTraffic()
+  );
+
+  ipcMain.handle('pchelper:run-speed-test', () =>
+    networkMonitor.getSpeedTestResults()
   );
 
   // Settings management

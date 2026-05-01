@@ -11,6 +11,9 @@ import HealthView from './components/HealthView';
 import AlertModal from './components/AlertModal';
 import AIChatPanel from './components/AIChatPanel';
 import SettingsView from './components/SettingsView';
+import StartupView from './components/StartupView';
+import NetworkView from './components/NetworkView';
+import TemperatureView from './components/TemperatureView';
 import TitleBar from './components/TitleBar';
 import { useAppStore } from './stores/appStore';
 import { useHardwareStore } from './stores/hardwareStore';
@@ -39,6 +42,12 @@ function MainContent() {
       return <AIChatPanel standalone />;
     case 'settings':
       return <SettingsView />;
+    case 'startup':
+      return <StartupView />;
+    case 'network':
+      return <NetworkView />;
+    case 'temperatures':
+      return <TemperatureView />;
     default:
       return <Dashboard />;
   }

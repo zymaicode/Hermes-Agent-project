@@ -1,4 +1,4 @@
-import type { HardwareSnapshot, SoftwareEntry, ConflictReport, AppEntry, UninstallResult, UpdateScanResult, Alert, HealthScore } from '../utils/types';
+import type { HardwareSnapshot, SoftwareEntry, ConflictReport, AppEntry, UninstallResult, UpdateScanResult, Alert, HealthScore, StartupEntry, StartupImpact, NetworkInterface, NetworkTraffic, SpeedTestResult } from '../utils/types';
 
 export {};
 
@@ -76,6 +76,17 @@ declare global {
       clearLocalData: () => Promise<{ success: boolean }>;
 
       onWindowStateChange: (callback: (isMaximized: boolean) => void) => () => void;
+
+      // Startup
+      getStartupApps: () => Promise<StartupEntry[]>;
+      toggleStartupApp: (name: string, enabled: boolean) => Promise<{ success: boolean; message: string }>;
+      disableSelectedStartup: (names: string[]) => Promise<{ success: number; failed: number; errors: string[] }>;
+      getStartupImpact: () => Promise<StartupImpact>;
+
+      // Network
+      getNetworkInterfaces: () => Promise<NetworkInterface[]>;
+      getNetworkTraffic: () => Promise<NetworkTraffic>;
+      runSpeedTest: () => Promise<SpeedTestResult>;
     };
   }
 }

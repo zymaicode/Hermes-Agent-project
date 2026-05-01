@@ -11,6 +11,9 @@ import {
   Settings,
   RefreshCw,
   ChevronRight,
+  Zap,
+  Wifi,
+  Thermometer,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { useConflictStore } from '../../stores/conflictStore';
@@ -31,10 +34,13 @@ const navItems: NavItem[] = [
   { id: 'hardware', label: 'Hardware', icon: Cpu },
   { id: 'software', label: 'Software', icon: Monitor },
   { id: 'apps', label: 'Apps', icon: AppWindow },
+  { id: 'startup', label: 'Startup', icon: Zap },
+  { id: 'network', label: 'Network', icon: Wifi },
   { id: 'conflicts', label: 'Conflicts', icon: AlertTriangle },
   { id: 'updates', label: 'Updates', icon: RefreshCw },
   { id: 'alerts', label: 'Alerts', icon: Bell },
   { id: 'health', label: 'Health', icon: Heart },
+  { id: 'temperatures', label: 'Temps', icon: Thermometer },
   { id: 'ai', label: 'AI Chat', icon: MessageSquare },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];

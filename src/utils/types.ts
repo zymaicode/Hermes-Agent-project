@@ -154,7 +154,58 @@ export interface Alert {
   threshold?: number;
 }
 
-export type NavPage = 'dashboard' | 'hardware' | 'software' | 'apps' | 'conflicts' | 'updates' | 'alerts' | 'health' | 'ai' | 'settings';
+export type NavPage = 'dashboard' | 'hardware' | 'software' | 'apps' | 'conflicts' | 'updates' | 'alerts' | 'health' | 'ai' | 'settings' | 'startup' | 'network' | 'temperatures';
+
+export interface StartupEntry {
+  name: string;
+  path: string;
+  enabled: boolean;
+  type: 'registry' | 'startup_folder' | 'service' | 'scheduled_task';
+  publisher: string;
+  description: string;
+  startupImpact: 'low' | 'medium' | 'high';
+}
+
+export interface StartupImpact {
+  bootTime: number;
+  impactSources: { name: string; seconds: number }[];
+}
+
+export interface NetworkInterface {
+  name: string;
+  type: 'ethernet' | 'wifi' | 'bluetooth' | 'virtual';
+  status: 'connected' | 'disconnected' | 'limited';
+  ipAddress: string;
+  subnet: string;
+  gateway: string;
+  dns: string[];
+  macAddress: string;
+  speed: number;
+  signalStrength?: number;
+  ssid?: string;
+}
+
+export interface NetworkTraffic {
+  downloadSpeed: number;
+  uploadSpeed: number;
+  totalDownload: number;
+  totalUpload: number;
+  activeConnections: number;
+}
+
+export interface SpeedTestResult {
+  download: number;
+  upload: number;
+  ping: number;
+  timestamp: number;
+}
+
+export interface TemperatureReading {
+  timestamp: number;
+  cpuTemp: number;
+  gpuTemp: number;
+  diskTemp: number;
+}
 
 export interface HealthCategory {
   score: number;
