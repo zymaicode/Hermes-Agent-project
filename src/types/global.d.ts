@@ -28,6 +28,7 @@ import type { MemoryModule, MemoryAllocation, MemoryTiming, MemoryHealth, PageFi
 import type { WindowsFeature } from '../../electron/features/manager';
 import type { SoundScheme, SystemSound, AudioDevice } from '../../electron/sounds/manager';
 import type { FontEntry } from '../../electron/fonts/manager';
+import type { MonitorInfo, AudioDeviceInfo, BluetoothDeviceEntry, PrinterEntry, GameControllerEntry } from '../../electron/external/deviceManager';
 import type { PingResult } from '../../electron/netdiag/ping';
 import type { TraceRouteResult } from '../../electron/netdiag/traceroute';
 import type { PortScanResult } from '../../electron/netdiag/portscanner';
@@ -426,6 +427,14 @@ declare global {
       getPoliciesByCategory: (categoryId: string) => Promise<PolicyEntry[]>;
       searchPolicies: (query: string) => Promise<PolicyEntry[]>;
       getPolicyDetail: (id: string) => Promise<PolicyEntry | null>;
+
+      // External Devices
+      getMonitors: () => Promise<MonitorInfo[]>;
+      getExternalAudioDevices: () => Promise<AudioDeviceInfo[]>;
+      getBluetoothDevices: () => Promise<BluetoothDeviceEntry[]>;
+      getPrinters: () => Promise<PrinterEntry[]>;
+      getGameControllers: () => Promise<GameControllerEntry[]>;
+      refreshDevices: () => Promise<void>;
     };
   }
 

@@ -44,6 +44,7 @@ import FontView from './components/FontView';
 import AccountsView from './components/AccountsView';
 import NetDiagView from './components/NetDiagView';
 import PolicyView from './components/PolicyView';
+import ExternalDevicesView from './components/ExternalDevicesView';
 import RepairCenter from './components/RepairCenter';
 import PerfOverlay from './components/PerfOverlay';
 import TitleBar from './components/TitleBar';
@@ -144,6 +145,8 @@ function MainContent() {
       return <NetDiagView />;
     case 'policy':
       return <PolicyView />;
+    case 'devices':
+      return <ExternalDevicesView />;
     default:
       return <Dashboard />;
   }

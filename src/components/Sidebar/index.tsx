@@ -136,6 +136,7 @@ const navSections: { heading: string; items: NavItem[] }[] = [
       { id: 'display', label: 'Display', icon: MonitorSmartphone },
       { id: 'sounds', label: 'Sounds', icon: Volume2 },
       { id: 'fonts', label: 'Fonts', icon: Type },
+      { id: 'devices', label: 'Devices', icon: MonitorSmartphone },
       { id: 'system', label: 'System Info', icon: Monitor },
       { id: 'ai', label: 'AI Chat', icon: MessageSquare },
       { id: 'settings', label: 'Settings', icon: Settings },

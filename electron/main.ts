@@ -57,6 +57,7 @@ import { scanPorts } from './netdiag/portscanner';
 import { dnsLookup } from './netdiag/dns';
 import { testBandwidth } from './netdiag/bandwidth';
 import { PolicyManager } from './policy/policyManager';
+import { DeviceManager } from './external/deviceManager';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -108,6 +109,7 @@ const userManager = new UserManager();
 const uacManager = new UacManager();
 const credentialManager = new CredentialManager();
 const policyManager = new PolicyManager();
+const deviceManager = new DeviceManager();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -1258,6 +1260,31 @@ function registerIpcHandlers(): void {
   ipcMain.handle('pchelper:policy-get-detail', (_event, id: string) =>
     policyManager.getPolicyById(id)
   );
+
+  // External Devices
+  ipcMain.handle('pchelper:external-get-monitors', () =>
+    deviceManager.getMonitors()
+  );
+
+  ipcMain.handle('pchelper:external-get-audio', () =>
+    deviceManager.getAudioDevices()
+  );
+
+  ipcMain.handle('pchelper:external-get-bluetooth', () =>
+    deviceManager.getBluetoothDevices()
+  );
+
+  ipcMain.handle('pchelper:external-get-printers', () =>
+    deviceManager.getPrinters()
+  );
+
+  ipcMain.handle('pchelper:external-get-controllers', () =>
+    deviceManager.getGameControllers()
+  );
+
+  ipcMain.handle('pchelper:external-refresh', () => {
+    deviceManager.refresh();
+  });
 
   // Settings management
   ipcMain.handle('pchelper:clear-local-data', () => {

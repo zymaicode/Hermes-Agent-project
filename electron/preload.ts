@@ -407,4 +407,18 @@ contextBridge.exposeInMainWorld('pchelper', {
     ipcRenderer.invoke('pchelper:policy-search', query),
   getPolicyDetail: (id: string) =>
     ipcRenderer.invoke('pchelper:policy-get-detail', id),
+
+  // External Devices
+  getMonitors: () =>
+    ipcRenderer.invoke('pchelper:external-get-monitors'),
+  getExternalAudioDevices: () =>
+    ipcRenderer.invoke('pchelper:external-get-audio'),
+  getBluetoothDevices: () =>
+    ipcRenderer.invoke('pchelper:external-get-bluetooth'),
+  getPrinters: () =>
+    ipcRenderer.invoke('pchelper:external-get-printers'),
+  getGameControllers: () =>
+    ipcRenderer.invoke('pchelper:external-get-controllers'),
+  refreshDevices: () =>
+    ipcRenderer.invoke('pchelper:external-refresh'),
 });
