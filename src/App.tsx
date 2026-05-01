@@ -18,6 +18,11 @@ import ProcessView from './components/ProcessView';
 import SystemInfoView from './components/SystemInfoView';
 import BenchmarkView from './components/BenchmarkView';
 import SchedulerView from './components/SchedulerView';
+import FirewallView from './components/FirewallView';
+import UsbView from './components/UsbView';
+import DiskCleanupView from './components/DiskCleanupView';
+import SecurityView from './components/SecurityView';
+import ClipboardView from './components/ClipboardView';
 import TitleBar from './components/TitleBar';
 import { useAppStore } from './stores/appStore';
 import { useHardwareStore } from './stores/hardwareStore';
@@ -60,6 +65,16 @@ function MainContent() {
       return <BenchmarkView />;
     case 'scheduler':
       return <SchedulerView />;
+    case 'firewall':
+      return <FirewallView />;
+    case 'usb':
+      return <UsbView />;
+    case 'diskcleanup':
+      return <DiskCleanupView />;
+    case 'security':
+      return <SecurityView />;
+    case 'clipboard':
+      return <ClipboardView />;
     default:
       return <Dashboard />;
   }

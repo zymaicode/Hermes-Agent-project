@@ -154,7 +154,7 @@ export interface Alert {
   threshold?: number;
 }
 
-export type NavPage = 'dashboard' | 'hardware' | 'software' | 'apps' | 'conflicts' | 'updates' | 'alerts' | 'health' | 'ai' | 'settings' | 'startup' | 'network' | 'temperatures' | 'process' | 'system' | 'benchmark' | 'scheduler';
+export type NavPage = 'dashboard' | 'hardware' | 'software' | 'apps' | 'conflicts' | 'updates' | 'alerts' | 'health' | 'ai' | 'settings' | 'startup' | 'network' | 'temperatures' | 'process' | 'system' | 'benchmark' | 'scheduler' | 'firewall' | 'usb' | 'diskcleanup' | 'security' | 'clipboard';
 
 export interface StartupEntry {
   name: string;

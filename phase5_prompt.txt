@@ -1,0 +1,336 @@
+## PCHelper — Phase 5: Firewall Rules + USB Devices + Disk Cleanup + Security Center + Clipboard History
+
+Current project: 59 files, 10,956 lines, zero TS errors. 17 nav items. Dark theme.
+
+### Task 1: Firewall Rules Viewer (`electron/firewall/reader.ts` + `src/components/FirewallView/index.tsx` + store)
+
+Backend (`electron/firewall/reader.ts`):
+```typescript
+export interface FirewallRule {
+  name: string;
+  enabled: boolean;
+  direction: 'inbound' | 'outbound';
+  action: 'allow' | 'block';
+  protocol: 'TCP' | 'UDP' | 'Any';
+  localPorts: string;
+  remotePorts: string;
+  localAddresses: string;
+  remoteAddresses: string;
+  program: string; // path to exe, or "System" / "All"
+  profiles: ('domain' | 'private' | 'public')[];
+  description: string;
+}
+
+export class FirewallReader {
+  getRules(): FirewallRule[] {
+    // Simulate: 30+ realistic Windows firewall rules
+    // Include: Core Networking, File Sharing, Remote Desktop, 
+    // Windows Update, Defender, VNC, SSH, Node.js, Docker,
+    // browser inbound rules, game ports, etc.
+    // Mix: 50% inbound/50% outbound, various programs, some disabled
+  }
+
+  toggleRule(name: string, enabled: boolean): { success: boolean; message: string } {
+    // Simulate toggle
+  }
+}
+```
+
+IPC: `pchelper:get-firewall-rules`, `pchelper:toggle-firewall-rule`
+
+UI (`src/components/FirewallView/index.tsx`):
+- **Stats row**: total rules, enabled count, inbound count, outbound count
+- **Filter bar**: search + direction filter (All/Inbound/Outbound) + action filter (All/Allow/Block) + protocol filter
+- **Table**: Name, Direction (inbound=green tag, outbound=blue), Action (allow=green check, block=red X), Protocol, Program (truncated path), Profiles, Enabled toggle
+- Sortable columns
+- Click row for detail: full ports, addresses, description
+- Status summary: "X rules active - Y inbound, Z outbound"
+
+### Task 2: USB Devices (`electron/usb/manager.ts` + `src/components/UsbView/index.tsx` + store)
+
+Backend (`electron/usb/manager.ts`):
+```typescript
+export interface UsbDevice {
+  name: string;
+  type: 'storage' | 'input' | 'audio' | 'network' | 'imaging' | 'other';
+  vendor: string;
+  product: string;
+  serialNumber: string;
+  connected: boolean;
+  firstConnected: string;
+  lastConnected: string;
+  driver: string;
+  powerRequired: number; // mA
+  busType: 'USB 2.0' | 'USB 3.0' | 'USB-C' | 'Thunderbolt';
+  vid: string; // vendor ID hex
+  pid: string; // product ID hex
+  description: string;
+  isRemovable: boolean;
+}
+
+export interface UsbHistoryEntry {
+  name: string;
+  type: string;
+  serialNumber: string;
+  firstSeen: string;
+  lastSeen: string;
+  timesConnected: number;
+}
+
+export class UsbManager {
+  getConnectedDevices(): UsbDevice[] {
+    // Simulate: 6-8 connected USB devices
+    // Storage: USB flash drive, external SSD
+    // Input: USB keyboard, mouse, webcam
+    // Audio: USB headset
+    // Other: Bluetooth dongle, USB-C hub
+  }
+
+  getHistory(): UsbHistoryEntry[] {
+    // Simulate: 15+ historical USB devices
+    // Include some no longer connected
+  }
+
+  ejectDevice(serialNumber: string): { success: boolean; message: string } {
+    // Simulate safe eject for storage devices
+  }
+}
+```
+
+IPC: `pchelper:get-usb-devices`, `pchelper:get-usb-history`, `pchelper:eject-usb-device`
+
+UI (`src/components/UsbView/index.tsx`):
+- **Connected Devices section**: cards for each connected device
+  - Icon based on type (storage=HardDrive, input=Keyboard, audio=Headphones, etc.)
+  - Name, Vendor, Type badge, Bus type
+  - Power requirement, serial (truncated)
+  - Eject button for storage devices
+- **History section** (below, collapsible): table of historical devices
+  - Name, Type, First Seen, Last Seen, Times Connected
+  - Green dot = currently connected, gray = disconnected
+- Refresh button
+
+### Task 3: Disk Cleanup Analyzer (`electron/disk/analyzer.ts` + `src/components/DiskCleanupView/index.tsx` + store)
+
+Backend (`electron/disk/analyzer.ts`):
+```typescript
+export interface DiskCategory {
+  name: string;
+  sizeGB: number;
+  fileCount: number;
+  color: string; // hex color for chart
+  items?: { name: string; sizeMB: number; path: string }[];
+}
+
+export interface LargeFile {
+  name: string;
+  path: string;
+  sizeMB: number;
+  type: string;
+  lastModified: string;
+}
+
+export interface TempFileCategory {
+  name: string;
+  sizeMB: number;
+  fileCount: number;
+  description: string;
+  safeToDelete: boolean;
+}
+
+export class DiskAnalyzer {
+  getSpaceDistribution(drive: string): DiskCategory[] {
+    // Simulate: realistic C:\ drive space distribution
+    // Categories: System Files (25GB), Applications (40GB), 
+    // Games (30GB), Documents (8GB), Media (15GB),
+    // Downloads (12GB), Temp Files (5GB), Free Space (65GB)
+    // Each with realistic file counts and explorer-like items
+  }
+
+  getLargeFiles(drive: string, limit?: number): LargeFile[] {
+    // Simulate: 20 largest files on C:\
+    // Include: pagefile.sys, hiberfil.sys, installer EXEs, 
+    // video files, Docker images, VS ISO, etc.
+  }
+
+  getTempFiles(): TempFileCategory[] {
+    // Simulate: temp file categories
+    // Windows Temp, Browser Cache, Recycle Bin, 
+    // Log Files, Crash Dumps, Delivery Optimization
+    // Each with size and whether safe to delete
+  }
+
+  cleanTempFiles(categories: string[]): { freedMB: number; errors: string[] } {
+    // Simulate cleaning temp files
+  }
+}
+```
+
+IPC: `pchelper:get-disk-space`, `pchelper:get-large-files`, `pchelper:get-temp-files`, `pchelper:clean-temp-files`
+
+UI (`src/components/DiskCleanupView/index.tsx`):
+- **Drive selector** at top (only C: simulated, but show as dropdown for future)
+- **Space Distribution** section: pie/donut chart using colored segments + legend below
+  - Each category clickable to show items list in a side panel
+  - Tooltip on hover: "Applications: 40.2 GB (2,847 files)"
+- **Large Files** section: top 20 largest files table
+  - Name, Size (sortable), Type, Path, Last Modified
+  - Color by type (system=red, media=blue, installers=yellow)
+- **Temp Files** section: checkable list of categories
+  - Each: checkbox, name, size, file count, safe icon (green check / yellow warning)
+  - "Clean Selected" button with summary: "Will free ~X MB"
+  - Confirmation dialog before cleaning
+  - Progress indicator during cleanup
+  - Result notification: "Freed X MB successfully"
+
+### Task 4: Security Center (`electron/security/center.ts` + `src/components/SecurityView/index.tsx` + store)
+
+Backend (`electron/security/center.ts`):
+```typescript
+export interface SecurityStatus {
+  overall: 'protected' | 'warning' | 'critical';
+  
+  antivirus: {
+    name: string;
+    enabled: boolean;
+    definitions: string; // "Up to date" or "X days old"
+    lastScan: string;
+    realTimeProtection: boolean;
+  };
+
+  firewall: {
+    enabled: boolean;
+    activeRules: number;
+    publicNetwork: 'blocked' | 'allowed';
+  };
+
+  account: {
+    passwordProtected: boolean;
+    lastPasswordChange: string;
+    hasPin: boolean;
+    hasFingerprint: boolean;
+    hasFace: boolean;
+    isAdmin: boolean;
+    uacEnabled: boolean;
+  };
+
+  encryption: {
+    bitlockerEnabled: boolean;
+    encryptedDrives: string[];
+    deviceEncryption: boolean;
+  };
+
+  updates: {
+    windowsUpdate: 'upToDate' | 'pending' | 'unsupported';
+    lastUpdateCheck: string;
+    pendingUpdates: number;
+  };
+
+  browser: {
+    defaultBrowser: string;
+    safeBrowsingEnabled: boolean;
+    adBlockPresent: boolean;
+  };
+
+  recommendations: string[];
+}
+
+export class SecurityCenter {
+  getStatus(): SecurityStatus {
+    // Simulate: well-protected Windows system (green overall)
+    // Defender up to date, firewall on, UAC enabled
+    // BitLocker on C: drive
+    // Maybe 1-2 recommendations (password change overdue)
+  }
+
+  runQuickScan(): { threats: number; scanned: number; duration: string; status: 'clean' | 'threats_found' } {
+    // Simulate: quick scan result
+  }
+}
+```
+
+IPC: `pchelper:get-security-status`, `pchelper:run-quick-scan`
+
+UI (`src/components/SecurityView/index.tsx`):
+- **Overall status card** at top: big colored banner (green=Protected / yellow=Warning / red=Critical)
+  - Shield icon (solid=protected, outlined=warning, X=critical)
+  - Last scan time + "Run Quick Scan" button
+  - Scan progress with animation when running
+- **Section cards** in a 2-column grid:
+  - **Antivirus**: name, definitions status (green check/red X), last scan, real-time toggle
+  - **Firewall**: enabled status, rules count, public network status
+  - **Account Security**: password, PIN, biometrics, admin status, UAC
+  - **Encryption**: BitLocker status per drive, device encryption
+  - **Windows Update**: up-to-date badge or pending count, last check
+  - **Browser**: default browser, safe browsing, ad blocker
+- **Recommendations** section at bottom: list of actionable items
+  - Each: icon + description + "Fix it" button (or "Resolved" if done)
+  - Color-coded by severity
+
+### Task 5: Clipboard History (`electron/clipboard/history.ts` + `src/components/ClipboardView/index.tsx` + store)
+
+Backend (`electron/clipboard/history.ts`):
+```typescript
+export interface ClipboardEntry {
+  id: string;
+  type: 'text' | 'image' | 'file' | 'link';
+  content: string; // preview text (truncated)
+  fullContent?: string; // full text if text type
+  source: string; // "Copy (Ctrl+C)" or app name
+  timestamp: number;
+  size: number; // bytes
+  isPinned: boolean;
+}
+
+export class ClipboardManager {
+  private history: ClipboardEntry[] = [];
+
+  getHistory(): ClipboardEntry[] {
+    // Simulate: 20 clipboard entries over last 2 hours
+    // Mix: URLs, code snippets, file paths, text fragments
+    // Some recent, some older, 1-2 pinned
+  }
+
+  clearHistory(): void {
+    this.history = [];
+  }
+
+  addToHistory(entry: Omit<ClipboardEntry, 'id' | 'timestamp'>): void {
+    // Simulate: add entry (for real would hook into OS clipboard)
+  }
+
+  removeEntry(id: string): void {
+    // Remove single entry
+  }
+
+  togglePin(id: string): void {
+    // Pin/unpin entry
+  }
+}
+```
+
+IPC: `pchelper:get-clipboard-history`, `pchelper:clear-clipboard-history`, `pchelper:remove-clipboard-entry`, `pchelper:toggle-clipboard-pin`
+
+UI (`src/components/ClipboardView/index.tsx`):
+- **Header**: "Clipboard History" + entry count + "Clear All" button (with confirm)
+- **Filter bar**: All / Text / Links / Files + search input
+- **Entry list** (vertically scrollable, card-style):
+  - Each entry: icon (text=FileText, link=Link, file=Paperclip), preview content (truncated), timestamp (relative: "2m ago", "1h ago"), size badge
+  - Pin icon (filled=blue if pinned, outline otherwise) — click to toggle
+  - Delete X button on hover
+  - Click to expand full content (modal or inline expand)
+  - Pinned entries always at top with separator
+- **Auto-capture status indicator**: "Clipboard monitoring: Active" with green dot
+- **Stats footer**: total entries, text/link/file breakdown, oldest entry age
+
+### NavPage additions: 'firewall' | 'usb' | 'diskcleanup' | 'security' | 'clipboard'
+New icons: Shield (firewall), HardDrive (usb), Trash2 (diskcleanup), ShieldCheck (security), ClipboardList (clipboard)
+
+### IMPORTANT RULES:
+1. After ALL changes: `npx tsc --noEmit` (zero errors required)
+2. npm install already done, do NOT re-run it
+3. Do NOT modify existing working code unless necessary for integration
+4. Keep the dark theme consistent
+5. Sidebar: add new items in logical order after Scheduler, before AI Chat
+6. App.tsx: 5 new switch cases + imports
+7. All simulated data must be realistic, specific, and well-structured

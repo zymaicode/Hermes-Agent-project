@@ -14,6 +14,11 @@ import { ProcessMonitor } from './process/monitor';
 import { SystemInfoCollector } from './system/info';
 import { BenchmarkRunner } from './benchmark/runner';
 import { SchedulerReader } from './scheduler/reader';
+import { FirewallReader } from './firewall/reader';
+import { UsbManager } from './usb/manager';
+import { DiskAnalyzer } from './disk/analyzer';
+import { SecurityCenter } from './security/center';
+import { ClipboardManager } from './clipboard/history';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -29,6 +34,11 @@ const processMonitor = new ProcessMonitor();
 const systemInfoCollector = new SystemInfoCollector();
 const benchmarkRunner = new BenchmarkRunner();
 const schedulerReader = new SchedulerReader();
+const firewallReader = new FirewallReader();
+const usbManager = new UsbManager();
+const diskAnalyzer = new DiskAnalyzer();
+const securityCenter = new SecurityCenter();
+const clipboardManager = new ClipboardManager();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -493,6 +503,71 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('pchelper:get-task-detail', (_event, name: string) =>
     schedulerReader.getTaskDetail(name)
+  );
+
+  // Firewall
+  ipcMain.handle('pchelper:get-firewall-rules', () =>
+    firewallReader.getRules()
+  );
+
+  ipcMain.handle('pchelper:toggle-firewall-rule', (_event, name: string, enabled: boolean) =>
+    firewallReader.toggleRule(name, enabled)
+  );
+
+  // USB Devices
+  ipcMain.handle('pchelper:get-usb-devices', () =>
+    usbManager.getConnectedDevices()
+  );
+
+  ipcMain.handle('pchelper:get-usb-history', () =>
+    usbManager.getHistory()
+  );
+
+  ipcMain.handle('pchelper:eject-usb-device', (_event, serialNumber: string) =>
+    usbManager.ejectDevice(serialNumber)
+  );
+
+  // Disk Cleanup
+  ipcMain.handle('pchelper:get-disk-space', (_event, drive: string) =>
+    diskAnalyzer.getSpaceDistribution(drive)
+  );
+
+  ipcMain.handle('pchelper:get-large-files', (_event, drive: string, limit?: number) =>
+    diskAnalyzer.getLargeFiles(drive, limit)
+  );
+
+  ipcMain.handle('pchelper:get-temp-files', () =>
+    diskAnalyzer.getTempFiles()
+  );
+
+  ipcMain.handle('pchelper:clean-temp-files', (_event, categories: string[]) =>
+    diskAnalyzer.cleanTempFiles(categories)
+  );
+
+  // Security
+  ipcMain.handle('pchelper:get-security-status', () =>
+    securityCenter.getStatus()
+  );
+
+  ipcMain.handle('pchelper:run-quick-scan', () =>
+    securityCenter.runQuickScan()
+  );
+
+  // Clipboard
+  ipcMain.handle('pchelper:get-clipboard-history', () =>
+    clipboardManager.getHistory()
+  );
+
+  ipcMain.handle('pchelper:clear-clipboard-history', () =>
+    clipboardManager.clearHistory()
+  );
+
+  ipcMain.handle('pchelper:remove-clipboard-entry', (_event, id: string) =>
+    clipboardManager.removeEntry(id)
+  );
+
+  ipcMain.handle('pchelper:toggle-clipboard-pin', (_event, id: string) =>
+    clipboardManager.togglePin(id)
   );
 
   // Settings management

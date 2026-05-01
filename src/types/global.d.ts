@@ -1,4 +1,9 @@
 import type { HardwareSnapshot, SoftwareEntry, ConflictReport, AppEntry, UninstallResult, UpdateScanResult, Alert, HealthScore, StartupEntry, StartupImpact, NetworkInterface, NetworkTraffic, SpeedTestResult, ProcessEntry, SystemInfo, BenchmarkResult, ScheduledTask } from '../utils/types';
+import type { FirewallRule } from '../../electron/firewall/reader';
+import type { UsbDevice, UsbHistoryEntry } from '../../electron/usb/manager';
+import type { DiskCategory, LargeFile, TempFileCategory } from '../../electron/disk/analyzer';
+import type { SecurityStatus } from '../../electron/security/center';
+import type { ClipboardEntry } from '../../electron/clipboard/history';
 
 export {};
 
@@ -103,6 +108,31 @@ declare global {
       // Scheduled Tasks
       getScheduledTasks: () => Promise<ScheduledTask[]>;
       getTaskDetail: (name: string) => Promise<(ScheduledTask & { conditions: string[]; settings: string[] }) | null>;
+
+      // Firewall
+      getFirewallRules: () => Promise<FirewallRule[]>;
+      toggleFirewallRule: (name: string, enabled: boolean) => Promise<{ success: boolean; message: string }>;
+
+      // USB Devices
+      getUsbDevices: () => Promise<UsbDevice[]>;
+      getUsbHistory: () => Promise<UsbHistoryEntry[]>;
+      ejectUsbDevice: (serialNumber: string) => Promise<{ success: boolean; message: string }>;
+
+      // Disk Cleanup
+      getDiskSpace: (drive: string) => Promise<DiskCategory[]>;
+      getLargeFiles: (drive: string, limit?: number) => Promise<LargeFile[]>;
+      getTempFiles: () => Promise<TempFileCategory[]>;
+      cleanTempFiles: (categories: string[]) => Promise<{ freedMB: number; errors: string[] }>;
+
+      // Security
+      getSecurityStatus: () => Promise<SecurityStatus>;
+      runQuickScan: () => Promise<{ threats: number; scanned: number; duration: string; status: 'clean' | 'threats_found' }>;
+
+      // Clipboard
+      getClipboardHistory: () => Promise<ClipboardEntry[]>;
+      clearClipboardHistory: () => Promise<void>;
+      removeClipboardEntry: (id: string) => Promise<void>;
+      toggleClipboardPin: (id: string) => Promise<void>;
     };
   }
 }

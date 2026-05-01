@@ -140,4 +140,30 @@ contextBridge.exposeInMainWorld('pchelper', {
   // Scheduled Tasks
   getScheduledTasks: () => ipcRenderer.invoke('pchelper:get-scheduled-tasks'),
   getTaskDetail: (name: string) => ipcRenderer.invoke('pchelper:get-task-detail', name),
+
+  // Firewall
+  getFirewallRules: () => ipcRenderer.invoke('pchelper:get-firewall-rules'),
+  toggleFirewallRule: (name: string, enabled: boolean) =>
+    ipcRenderer.invoke('pchelper:toggle-firewall-rule', name, enabled),
+
+  // USB Devices
+  getUsbDevices: () => ipcRenderer.invoke('pchelper:get-usb-devices'),
+  getUsbHistory: () => ipcRenderer.invoke('pchelper:get-usb-history'),
+  ejectUsbDevice: (serialNumber: string) => ipcRenderer.invoke('pchelper:eject-usb-device', serialNumber),
+
+  // Disk Cleanup
+  getDiskSpace: (drive: string) => ipcRenderer.invoke('pchelper:get-disk-space', drive),
+  getLargeFiles: (drive: string, limit?: number) => ipcRenderer.invoke('pchelper:get-large-files', drive, limit),
+  getTempFiles: () => ipcRenderer.invoke('pchelper:get-temp-files'),
+  cleanTempFiles: (categories: string[]) => ipcRenderer.invoke('pchelper:clean-temp-files', categories),
+
+  // Security
+  getSecurityStatus: () => ipcRenderer.invoke('pchelper:get-security-status'),
+  runQuickScan: () => ipcRenderer.invoke('pchelper:run-quick-scan'),
+
+  // Clipboard
+  getClipboardHistory: () => ipcRenderer.invoke('pchelper:get-clipboard-history'),
+  clearClipboardHistory: () => ipcRenderer.invoke('pchelper:clear-clipboard-history'),
+  removeClipboardEntry: (id: string) => ipcRenderer.invoke('pchelper:remove-clipboard-entry', id),
+  toggleClipboardPin: (id: string) => ipcRenderer.invoke('pchelper:toggle-clipboard-pin', id),
 });

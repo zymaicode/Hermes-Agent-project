@@ -17,6 +17,11 @@ import {
   Activity,
   Gauge,
   Calendar,
+  Shield,
+  Usb,
+  Trash2,
+  ShieldCheck,
+  ClipboardList,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { useConflictStore } from '../../stores/conflictStore';
@@ -48,6 +53,11 @@ const navItems: NavItem[] = [
   { id: 'system', label: 'System', icon: Monitor },
   { id: 'benchmark', label: 'Benchmark', icon: Gauge },
   { id: 'scheduler', label: 'Tasks', icon: Calendar },
+  { id: 'firewall', label: 'Firewall', icon: Shield },
+  { id: 'usb', label: 'USB Devices', icon: Usb },
+  { id: 'diskcleanup', label: 'Disk Cleanup', icon: Trash2 },
+  { id: 'security', label: 'Security', icon: ShieldCheck },
+  { id: 'clipboard', label: 'Clipboard', icon: ClipboardList },
   { id: 'ai', label: 'AI Chat', icon: MessageSquare },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
