@@ -1,0 +1,14 @@
+Placeholder for PCHelper application icon.
+
+Create a 256x256 PNG icon with:
+- Dark background (#0d1117)
+- A stylized "P" letter centered, using accent color (#58a6ff)
+- Subtle circuit-board or chip pattern behind the letter
+- Rounded corners (suggested)
+
+This file is required by electron-builder for the Windows installer.
+Replace this note with the actual icon.png before building.
+
+To generate a quick placeholder:
+- Use any PNG generator, or
+- Create a simple SVG and convert: npx svg-to-png assets/icon.svg assets/icon.png
