@@ -24,6 +24,11 @@ import { ServiceManager } from './services/manager';
 import { EventLogReader } from './events/reader';
 import { BatteryReporter } from './battery/reporter';
 import { PerfLogRecorder } from './perflog/recorder';
+import { RegistryViewer } from './registry/viewer';
+import { NetworkConnectionMonitor } from './network/connections';
+import { FileAssociationReader } from './files/associations';
+import { DisplayInfoCollector } from './display/monitor';
+import { PowerPlanManager } from './power/manager';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -49,6 +54,11 @@ const serviceManager = new ServiceManager();
 const eventLogReader = new EventLogReader();
 const batteryReporter = new BatteryReporter();
 const perfLogRecorder = new PerfLogRecorder();
+const registryViewer = new RegistryViewer();
+const networkConnectionMonitor = new NetworkConnectionMonitor();
+const fileAssociationReader = new FileAssociationReader();
+const displayInfoCollector = new DisplayInfoCollector();
+const powerPlanManager = new PowerPlanManager();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -667,6 +677,87 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('pchelper:get-active-session', () =>
     perfLogRecorder.getActiveSession()
+  );
+
+  // Registry Viewer
+  ipcMain.handle('pchelper:get-registry-roots', () =>
+    registryViewer.getRootKeys()
+  );
+
+  ipcMain.handle('pchelper:get-registry-key', (_event, path: string) =>
+    registryViewer.getKey(path)
+  );
+
+  ipcMain.handle('pchelper:navigate-registry', (_event, path: string) =>
+    registryViewer.navigate(path)
+  );
+
+  ipcMain.handle('pchelper:search-registry', (_event, query: string) =>
+    registryViewer.search(query)
+  );
+
+  ipcMain.handle('pchelper:get-registry-favorites', () =>
+    registryViewer.getFavorites()
+  );
+
+  // Network Connections
+  ipcMain.handle('pchelper:get-network-connections', (_event, filter?: { state?: string; protocol?: string; pid?: number }) =>
+    networkConnectionMonitor.getConnections(filter)
+  );
+
+  ipcMain.handle('pchelper:get-listening-ports', () =>
+    networkConnectionMonitor.getListeningPorts()
+  );
+
+  ipcMain.handle('pchelper:get-connection-stats', () =>
+    networkConnectionMonitor.getConnectionStats()
+  );
+
+  ipcMain.handle('pchelper:get-geo-info', (_event, ip: string) =>
+    networkConnectionMonitor.getGeoInfo(ip)
+  );
+
+  // File Associations
+  ipcMain.handle('pchelper:get-file-associations', () =>
+    fileAssociationReader.getAssociations()
+  );
+
+  ipcMain.handle('pchelper:get-protocol-associations', () =>
+    fileAssociationReader.getProtocolAssociations()
+  );
+
+  ipcMain.handle('pchelper:get-category-breakdown', () =>
+    fileAssociationReader.getCategoryBreakdown()
+  );
+
+  ipcMain.handle('pchelper:set-file-association', (_event, extension: string, program: string) =>
+    fileAssociationReader.setAssociation(extension, program)
+  );
+
+  // Display Info
+  ipcMain.handle('pchelper:get-displays', () =>
+    displayInfoCollector.getDisplays()
+  );
+
+  ipcMain.handle('pchelper:get-adapter-info', () =>
+    displayInfoCollector.getAdapterInfo()
+  );
+
+  ipcMain.handle('pchelper:get-color-profiles', () =>
+    displayInfoCollector.getColorProfiles()
+  );
+
+  // Power Plan Manager
+  ipcMain.handle('pchelper:get-power-plans', () =>
+    powerPlanManager.getPlans()
+  );
+
+  ipcMain.handle('pchelper:set-active-plan', (_event, guid: string) =>
+    powerPlanManager.setActivePlan(guid)
+  );
+
+  ipcMain.handle('pchelper:get-power-report', () =>
+    powerPlanManager.getReport()
   );
 
   // Settings management

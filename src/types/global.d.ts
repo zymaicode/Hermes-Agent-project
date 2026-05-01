@@ -9,6 +9,11 @@ import type { ServiceEntry, ServiceDetail } from '../../electron/services/manage
 import type { EventLogEntry } from '../../electron/events/reader';
 import type { BatteryStatus, BatteryHistoryPoint } from '../../electron/battery/reporter';
 import type { PerfLogSession, PerfLogEntry } from '../../electron/perflog/recorder';
+import type { RegistryKey, RegistrySearchResult } from '../../electron/registry/viewer';
+import type { NetworkConnection, ListeningPort, ConnectionStats } from '../../electron/network/connections';
+import type { FileAssociation, ProtocolAssociation } from '../../electron/files/associations';
+import type { DisplayMonitor, AdapterInfo, ColorProfile } from '../../electron/display/monitor';
+import type { PowerPlan, PowerReport } from '../../electron/power/manager';
 
 export {};
 
@@ -169,6 +174,35 @@ declare global {
       getPerfSessionData: (sessionId: string) => Promise<PerfLogEntry[]>;
       deletePerfSession: (sessionId: string) => Promise<void>;
       getActiveSession: () => Promise<PerfLogSession | null>;
+
+      // Registry Viewer
+      getRegistryRoots: () => Promise<RegistryKey[]>;
+      getRegistryKey: (path: string) => Promise<RegistryKey>;
+      navigateRegistry: (path: string) => Promise<{ key: RegistryKey; subkeys: string[]; parent: string | null }>;
+      searchRegistry: (query: string) => Promise<RegistrySearchResult[]>;
+      getRegistryFavorites: () => Promise<string[]>;
+
+      // Network Connections
+      getNetworkConnections: (filter?: { state?: string; protocol?: string; pid?: number }) => Promise<NetworkConnection[]>;
+      getListeningPorts: () => Promise<ListeningPort[]>;
+      getConnectionStats: () => Promise<ConnectionStats>;
+      getGeoInfo: (ip: string) => Promise<{ country: string; city: string; isp: string } | null>;
+
+      // File Associations
+      getFileAssociations: () => Promise<FileAssociation[]>;
+      getProtocolAssociations: () => Promise<ProtocolAssociation[]>;
+      getCategoryBreakdown: () => Promise<Record<string, number>>;
+      setFileAssociation: (extension: string, program: string) => Promise<{ success: boolean; message: string }>;
+
+      // Display Info
+      getDisplays: () => Promise<DisplayMonitor[]>;
+      getAdapterInfo: () => Promise<AdapterInfo>;
+      getColorProfiles: () => Promise<ColorProfile[]>;
+
+      // Power Plan Manager
+      getPowerPlans: () => Promise<PowerPlan[]>;
+      setActivePlan: (guid: string) => Promise<{ success: boolean; message: string }>;
+      getPowerReport: () => Promise<PowerReport>;
     };
   }
 }

@@ -197,4 +197,35 @@ contextBridge.exposeInMainWorld('pchelper', {
   getPerfSessionData: (sessionId: string) => ipcRenderer.invoke('pchelper:get-perf-session-data', sessionId),
   deletePerfSession: (sessionId: string) => ipcRenderer.invoke('pchelper:delete-perf-session', sessionId),
   getActiveSession: () => ipcRenderer.invoke('pchelper:get-active-session'),
+
+  // Registry Viewer
+  getRegistryRoots: () => ipcRenderer.invoke('pchelper:get-registry-roots'),
+  getRegistryKey: (path: string) => ipcRenderer.invoke('pchelper:get-registry-key', path),
+  navigateRegistry: (path: string) => ipcRenderer.invoke('pchelper:navigate-registry', path),
+  searchRegistry: (query: string) => ipcRenderer.invoke('pchelper:search-registry', query),
+  getRegistryFavorites: () => ipcRenderer.invoke('pchelper:get-registry-favorites'),
+
+  // Network Connections
+  getNetworkConnections: (filter?: { state?: string; protocol?: string; pid?: number }) =>
+    ipcRenderer.invoke('pchelper:get-network-connections', filter),
+  getListeningPorts: () => ipcRenderer.invoke('pchelper:get-listening-ports'),
+  getConnectionStats: () => ipcRenderer.invoke('pchelper:get-connection-stats'),
+  getGeoInfo: (ip: string) => ipcRenderer.invoke('pchelper:get-geo-info', ip),
+
+  // File Associations
+  getFileAssociations: () => ipcRenderer.invoke('pchelper:get-file-associations'),
+  getProtocolAssociations: () => ipcRenderer.invoke('pchelper:get-protocol-associations'),
+  getCategoryBreakdown: () => ipcRenderer.invoke('pchelper:get-category-breakdown'),
+  setFileAssociation: (extension: string, program: string) =>
+    ipcRenderer.invoke('pchelper:set-file-association', extension, program),
+
+  // Display Info
+  getDisplays: () => ipcRenderer.invoke('pchelper:get-displays'),
+  getAdapterInfo: () => ipcRenderer.invoke('pchelper:get-adapter-info'),
+  getColorProfiles: () => ipcRenderer.invoke('pchelper:get-color-profiles'),
+
+  // Power Plan Manager
+  getPowerPlans: () => ipcRenderer.invoke('pchelper:get-power-plans'),
+  setActivePlan: (guid: string) => ipcRenderer.invoke('pchelper:set-active-plan', guid),
+  getPowerReport: () => ipcRenderer.invoke('pchelper:get-power-report'),
 });

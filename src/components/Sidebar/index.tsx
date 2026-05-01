@@ -26,6 +26,10 @@ import {
   ScrollText,
   Battery,
   LineChart,
+  Search,
+  GitFork,
+  FileType,
+  MonitorSmartphone,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { useConflictStore } from '../../stores/conflictStore';
@@ -67,6 +71,11 @@ const navItems: NavItem[] = [
   { id: 'eventlog', label: 'Event Log', icon: ScrollText },
   { id: 'battery', label: 'Battery', icon: Battery },
   { id: 'perflog', label: 'Perf Log', icon: LineChart },
+  { id: 'registry', label: 'Registry', icon: Search },
+  { id: 'netconn', label: 'Net Connections', icon: GitFork },
+  { id: 'filetypes', label: 'File Types', icon: FileType },
+  { id: 'display', label: 'Display', icon: MonitorSmartphone },
+  { id: 'power', label: 'Power Plan', icon: Zap },
   { id: 'ai', label: 'AI Chat', icon: MessageSquare },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];

@@ -28,6 +28,11 @@ import ServicesView from './components/ServicesView';
 import EventLogView from './components/EventLogView';
 import BatteryView from './components/BatteryView';
 import PerfLogView from './components/PerfLogView';
+import RegistryView from './components/RegistryView';
+import NetConnView from './components/NetConnView';
+import FileTypeView from './components/FileTypeView';
+import DisplayView from './components/DisplayView';
+import PowerView from './components/PowerView';
 import TitleBar from './components/TitleBar';
 import { useAppStore } from './stores/appStore';
 import { useHardwareStore } from './stores/hardwareStore';
@@ -90,6 +95,16 @@ function MainContent() {
       return <BatteryView />;
     case 'perflog':
       return <PerfLogView />;
+    case 'registry':
+      return <RegistryView />;
+    case 'netconn':
+      return <NetConnView />;
+    case 'filetypes':
+      return <FileTypeView />;
+    case 'display':
+      return <DisplayView />;
+    case 'power':
+      return <PowerView />;
     default:
       return <Dashboard />;
   }

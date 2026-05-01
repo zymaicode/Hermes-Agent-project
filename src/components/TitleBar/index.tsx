@@ -11,6 +11,11 @@ const PAGE_LABELS: Record<string, string> = {
   health: 'Health Score',
   ai: 'AI Chat',
   settings: 'Settings',
+  registry: 'Registry Viewer',
+  netconn: 'Network Connections',
+  filetypes: 'File Type Manager',
+  display: 'Display Information',
+  power: 'Power Plan Manager',
 };
 
 export default function TitleBar() {

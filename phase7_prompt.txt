@@ -1,0 +1,417 @@
+## PCHelper — Phase 7: Registry Viewer, Network Connections, File Type Manager, Display Info, Power Plan Manager
+
+Current project: 89 files, 16,244 lines, zero TS errors. 27 nav items. Dark theme.
+
+### Task 1: Registry Viewer (`electron/registry/viewer.ts` + `src/components/RegistryView/index.tsx` + store)
+
+Backend (`electron/registry/viewer.ts`):
+```typescript
+export interface RegistryKey {
+  name: string;
+  path: string;
+  hive: 'HKEY_CLASSES_ROOT' | 'HKEY_CURRENT_USER' | 'HKEY_LOCAL_MACHINE' | 'HKEY_USERS' | 'HKEY_CURRENT_CONFIG';
+  subkeys: number;
+  values: RegistryValue[];
+  lastModified: string;
+}
+
+export interface RegistryValue {
+  name: string;
+  type: 'REG_SZ' | 'REG_DWORD' | 'REG_QWORD' | 'REG_BINARY' | 'REG_MULTI_SZ' | 'REG_EXPAND_SZ';
+  data: string;
+  dataSize: number; // bytes
+}
+
+export interface RegistrySearchResult {
+  key: string;
+  matchType: 'key_name' | 'value_name' | 'value_data';
+  value?: string;
+}
+
+export class RegistryViewer {
+  // Simulate Windows registry structure with common paths
+  // HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion
+  // HKLM\SYSTEM\CurrentControlSet\Services
+  // HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer
+  // HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion
+  // etc.
+  
+  private registryTree: Record<string, RegistryKey> = {};
+
+  getRootKeys(): RegistryKey[] {
+    // Return 5 hive root keys with their children
+  }
+
+  getKey(path: string): RegistryKey {
+    // Simulate: real-looking registry key with 5-15 values and subkey count
+    // Include values like: (Default), InstallPath, Version, Start (DWORD), 
+    // ImagePath (EXPAND_SZ), DisplayName, etc.
+    // Realistic value types: SZ for strings, DWORD for numbers, BINARY for binary data
+  }
+
+  getSubKeys(path: string): string[] {
+    // Return child key names
+  }
+
+  navigate(path: string): { key: RegistryKey; subkeys: string[]; parent: string | null } {
+    // Navigate to any simulated path, like Windows Regedit
+  }
+
+  search(query: string, scope?: string): RegistrySearchResult[] {
+    // Simulate: search key names and value names
+  }
+
+  getFavorites(): string[] {
+    return [
+      'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run',
+      'HKLM\\SYSTEM\\CurrentControlSet\\Services',
+      'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced',
+      'HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion',
+      'HKLM\\HARDWARE\\DESCRIPTION\\System',
+    ];
+  }
+}
+```
+
+IPC: `pchelper:get-registry-key`, `pchelper:get-registry-roots`, `pchelper:navigate-registry`, `pchelper:search-registry`, `pchelper:get-registry-favorites`
+
+UI (`src/components/RegistryView/index.tsx`):
+- **Layout**: split panel, tree on left (~280px), content on right
+- **Left tree**: root hives initially collapsed, click arrow to expand, shows subkeys as folder-like tree with small folder icons
+  - Click to navigate, selected key highlighted with accent color
+  - Search bar at top of tree: type to filter visible keys
+  - Favorites button (star icon) shows bookmarked paths
+- **Right panel** (key selected):
+  - **Breadcrumb**: clickable path segments like Regedit (e.g., `HKLM > SOFTWARE > Microsoft > Windows > CurrentVersion`)
+  - **Key info bar**: path, subkey count, last modified
+  - **Values table**: Name | Type | Data
+    - REG_SZ: plain text string
+    - REG_DWORD: show decimal + hex (e.g., "1 (0x00000001)")
+    - REG_BINARY: show hex preview, truncated
+    - REG_MULTI_SZ: show first line + "(N more lines)"
+    - REG_EXPAND_SZ: show expanded value if env var present
+  - Double-click value to see full data in modal
+- **Right panel** (no key selected): "Select a registry key from the tree" prompt
+- **Address bar**: full path input + Go button (for direct navigation)
+- **Style**: mimic Regedit dark theme but more modern
+
+### Task 2: Network Connections (`electron/network/connections.ts` + `src/components/NetConnView/index.tsx` + store)
+
+Backend (`electron/network/connections.ts`):
+```typescript
+export interface NetworkConnection {
+  protocol: 'TCP' | 'UDP' | 'TCPv6' | 'UDPv6';
+  localAddress: string;
+  localPort: number;
+  remoteAddress: string;
+  remotePort: number;
+  state: 'established' | 'listen' | 'time_wait' | 'close_wait' | 'syn_sent' | 'syn_received' | 'fin_wait1' | 'fin_wait2' | 'closed' | 'bound' | 'unknown';
+  processId: number;
+  processName: string;
+  processPath: string;
+  created: string;
+  bytesSent: number;
+  bytesReceived: number;
+}
+
+export interface ListeningPort {
+  protocol: string;
+  port: number;
+  address: string;
+  processName: string;
+  pid: number;
+  service: string;
+  description: string;
+}
+
+export class NetworkConnectionMonitor {
+  getConnections(filter?: { state?: string; protocol?: string; pid?: number }): NetworkConnection[] {
+    // Simulate: 40+ active network connections
+    // Established: Chrome browsing, Discord voice, VS Code update check, Spotify streaming
+    // Listen: Node.js dev server (:5173), Docker daemon (:2375), RDP (:3389)
+    // Time_wait: old connections
+    // Include realistic remote IPs and ports
+  }
+
+  getListeningPorts(): ListeningPort[] {
+    // Simulate: 20+ listening ports
+    // Common Windows: 135 (RPC), 445 (SMB), 5040 (Windows), 5357 (WSDAPI)
+    // Apps: 5173 (Vite), 3000 (Node), 5432 (PostgreSQL if running), 9229 (debug)
+    // Windows services: 3389 (RDP), 5985 (WinRM)
+  }
+
+  getConnectionStats(): { total: number; established: number; listening: number; timeWait: number; pidCount: number } {
+    // Summary stats
+  }
+
+  getGeoInfo(ip: string): { country: string; city: string; isp: string } | null {
+    // Simulate geo info for known IPs
+    // Google: US/Mountain View
+    // Cloudflare: US/San Francisco
+    // CDN: various locations
+  }
+}
+```
+
+IPC: `pchelper:get-network-connections`, `pchelper:get-listening-ports`, `pchelper:get-connection-stats`
+
+UI (`src/components/NetConnView/index.tsx`):
+- **Tab bar** at top: "Active Connections" | "Listening Ports"
+- **Active Connections tab**:
+  - **Stats row**: total connections, established count, listening, time_wait, unique processes
+  - **Filter bar**: protocol filter (TCP/UDP/All) + state filter dropdown + search (by process/IP)
+  - **Table**: Protocol (badge), Local Address:Port, Remote Address:Port (with country flag emoji for known IPs), State (colored badge), Process Name, PID
+    - Establish=green, Listen=blue, Time_wait=gray, Close_wait=yellow
+    - Sortable columns
+    - Click row to expand detail panel
+  - **Detail panel**: full addresses + ports, bytes sent/received, process path, created time
+  - **Geo tooltip**: hover remote IP shows country/city/ISP tooltip
+  - **Auto-refresh**: every 3 seconds
+- **Listening Ports tab**:
+  - **Stats row**: total ports, ports by protocol
+  - **Table**: Port, Protocol, Address, Process Name, PID, Service, Description
+  - Sortable by port number
+  - Danger indicator for common attack vectors (port 22, 3389 exposed)
+- Both tabs have refresh button
+
+### Task 3: File Type Manager (`electron/files/associations.ts` + `src/components/FileTypeView/index.tsx` + store)
+
+Backend (`electron/files/associations.ts`):
+```typescript
+export interface FileAssociation {
+  extension: string; // ".txt", ".pdf", ".jpg"
+  description: string; // "Text Document", "PDF File"
+  contentType: string; // "text/plain", "application/pdf"
+  progId: string; // "txtfile", "Applications\chrome.exe"
+  defaultProgram: string; // "Notepad", "Google Chrome", "Microsoft Edge"
+  iconPath: string; // "%SystemRoot%\system32\imageres.dll,-102"
+  perceivedType: string; // "text", "image", "video", "audio", "document", "system"
+  isRegistered: boolean;
+  hasUserChoice: boolean;
+}
+
+export interface ProtocolAssociation {
+  protocol: string; // "http", "https", "mailto", "ftp", "telnet"
+  defaultProgram: string;
+  description: string;
+}
+
+export class FileAssociationReader {
+  getAssociations(): FileAssociation[] {
+    // Simulate: 30+ common file type associations
+    // Text: .txt (Notepad), .md (VS Code), .csv (Excel), .json (VS Code), .xml (VS Code)
+    // Document: .pdf (Edge), .docx (Word), .xlsx (Excel), .pptx (PowerPoint)
+    // Code: .js (VS Code), .ts (VS Code), .py (VS Code), .html (VS Code), .css (VS Code), .tsx (VS Code)
+    // Image: .jpg (Photos), .png (Photos), .gif (Photos), .bmp (Paint), .svg (Edge)
+    // Audio: .mp3 (Windows Media Player), .wav (Windows Media Player), .flac (MusicBee)
+    // Video: .mp4 (Movies & TV), .mkv (VLC), .avi (VLC)
+    // Archive: .zip (File Explorer), .rar (WinRAR), .7z (7-Zip)
+    // Web: .html (Chrome/Edge), .htm (Chrome/Edge)
+    // System: .dll, .exe, .msi (Windows)
+  }
+
+  getProtocolAssociations(): ProtocolAssociation[] {
+    // Simulate: common protocol handlers
+    // http/https: Chrome/Edge, mailto: Outlook, ftp: File Explorer
+  }
+
+  getCategoryBreakdown(): Record<string, number> {
+    // Count by perceivedType
+  }
+
+  setAssociation(extension: string, program: string): { success: boolean; message: string } {
+    // Simulate: set default program for extension
+  }
+}
+```
+
+IPC: `pchelper:get-file-associations`, `pchelper:get-protocol-associations`, `pchelper:get-category-breakdown`, `pchelper:set-file-association`
+
+UI (`src/components/FileTypeView/index.tsx`):
+- **Summary row**: total associations, categories breakdown (Text: 6, Document: 4, Code: 7, Image: 5, Audio: 3, Video: 3, Archive: 3, System: 3, Web: 2)
+- **Filter**: search (by extension, program, description) + category dropdown
+- **Table**: Extension (bold, monospace, .ext), Description, Default Program (with small icon/emoji), Content Type, Perceived Type (badge)
+  - Sortable by extension, program, type
+  - Row highlight on hover
+- **Protocol Associations** section (below, collapsible):
+  - Table: Protocol (e.g., http://), Default Program, Description
+- **Association detail** (click row):
+  - Extension, Description, Content Type, ProgId, Icon Path
+  - "Change Default" button → show program selector (simulated dropdown with common apps)
+  - Warning if no registered program: "No program registered for this file type"
+- **"Reset to Windows Defaults"** button with confirmation
+- **Search**: filter by extension name, program name, or file description
+
+### Task 4: Display Information (`electron/display/monitor.ts` + `src/components/DisplayView/index.tsx` + store)
+
+Backend (`electron/display/monitor.ts`):
+```typescript
+export interface DisplayMonitor {
+  name: string; // "Generic PnP Monitor"
+  manufacturer: string; // "Dell", "LG", "Samsung"
+  model: string; // "U2723QE", "27GP850"
+  serialNumber: string;
+  manufactureDate: string;
+  connectionType: 'HDMI' | 'DisplayPort' | 'USB-C' | 'VGA' | 'DVI';
+  resolution: { width: number; height: number };
+  refreshRate: number; // Hz
+  bitDepth: number; // 8, 10
+  colorFormat: string; // "RGB", "YCbCr444"
+  hdrSupported: boolean;
+  hdrEnabled: boolean;
+  dpi: number;
+  scaling: number; // percentage (100, 125, 150, 175, 200)
+  primary: boolean;
+  edidVersion: string;
+  maxResolution: { width: number; height: number };
+  supportedRefreshRates: number[];
+  physicalSize: { width: number; height: number }; // mm
+  pixelPitch: number; // mm
+  aspectRatio: string; // "16:9", "16:10", "21:9"
+  sRGB: number; // percentage
+  dciP3: number; // percentage (0 if not measured)
+  hdrFormats: string[]; // e.g., ["HDR10", "Dolby Vision"]
+}
+
+export interface AdapterInfo {
+  name: string;
+  vendor: string;
+  driverVersion: string;
+  driverDate: string;
+  vram: number; // MB
+  directXSupport: string; // "12_2", "12_1", "11_0"
+  vulkanSupport: boolean;
+  openGLVersion: string;
+  featureLevel: string;
+  outputs: DisplayMonitor[];
+}
+
+export class DisplayInfoCollector {
+  getDisplays(): DisplayMonitor[] {
+    // Simulate: 2 displays (primary + secondary)
+    // Primary: 27" 4K Dell U2723QE, USB-C, HDR, 60Hz, 163 DPI, 150% scaling
+    // Secondary: 24" 1080p LG 24GN600, HDMI, no HDR, 144Hz, 96 DPI, 100% scaling
+  }
+
+  getAdapterInfo(): AdapterInfo {
+    // Simulate: NVIDIA RTX 4080 or similar high-end GPU display adapter
+    // Driver version, DirectX 12 Ultimate, Vulkan support
+  }
+
+  getColorProfiles(): Array<{ name: string; path: string; isDefault: boolean; gamut: string; whitepoint: string; gamma: number }> {
+    // Simulate: sRGB IEC61966-2.1, DCI-P3, Adobe RGB (1998)
+  }
+}
+```
+
+IPC: `pchelper:get-displays`, `pchelper:get-adapter-info`, `pchelper:get-color-profiles`
+
+UI (`src/components/DisplayView/index.tsx`):
+- **Adapter card** at top: GPU name, driver version, VRAM, DirectX/Vulkan/OpenGL support (feature badges)
+- **Displays section**: cards in a row (or stacked if narrow)
+  - Each card: monitor name prominently, resolution + refresh rate, connection type badge
+  - **Resolution detail**: width × height @ refreshRate Hz, bit depth, color format
+  - **HDR badge**: gold badge if HDR enabled, gray if not supported
+  - **Scaling info**: DPI + scaling percentage
+  - **Physical info**: screen size, pixel pitch, aspect ratio
+  - **Color space**: sRGB coverage bar, DCI-P3 if available
+  - Primary indicator: star icon on primary display
+- **Color Profiles** section (collapsible): table with name, gamut, whitepoint, gamma
+- **Supported Resolutions** section: list of supported refresh rates per display
+- No auto-refresh (static data), refresh button
+
+### Task 5: Power Plan Manager (`electron/power/manager.ts` + `src/components/PowerView/index.tsx` + store)
+
+Backend (`electron/power/manager.ts`):
+```typescript
+export interface PowerPlan {
+  guid: string;
+  name: string;
+  description: string;
+  isActive: boolean;
+  isHighPerformance: boolean;
+  isBalanced: boolean;
+  isPowerSaver: boolean;
+  settings: PowerSettingGroup[];
+}
+
+export interface PowerSettingGroup {
+  category: string; // "Hard disk", "Wireless Adapter", "Sleep", "USB Settings", "PCI Express", "Processor power management"
+  settings: PowerSetting[];
+}
+
+export interface PowerSetting {
+  name: string;
+  currentValue: string;
+  possibleValues: string[];
+  description: string;
+  isBatterySetting: boolean; // AC vs Battery
+  isCritical: boolean;
+}
+
+export interface PowerReport {
+  activePlan: string;
+  batteryLifeRemaining: string;
+  estimatedBatteryLife: string; // with current plan
+  estimatedBatteryLifeOptimized: string; // with power saver
+}
+
+export class PowerPlanManager {
+  getPlans(): PowerPlan[] {
+    // Simulate: 3 Windows power plans
+    // Balanced (active): "Balanced" - recommended
+    // High Performance: "Ultimate Performance"
+    // Power Saver: "Power Saver"
+    // Each with 5-6 setting groups and detailed settings
+  }
+
+  setActivePlan(guid: string): { success: boolean; message: string } {
+    // Switch plan
+  }
+
+  getReport(): PowerReport {
+    // Simulate battery life estimates
+  }
+
+  // Settings per plan with realistic values:
+  // Processor power management: min 5%/100%, max 100%, cooling passive/active
+  // Hard disk: turn off after 10/20 min
+  // Sleep: after 15/30 min, hybrid sleep, wake timers
+  // USB: selective suspend enabled/disabled
+  // PCI Express: link state power management
+  // Wireless: power saving mode
+}
+```
+
+IPC: `pchelper:get-power-plans`, `pchelper:set-active-plan`, `pchelper:get-power-report`
+
+UI (`src/components/PowerView/index.tsx`):
+- **Active plan card** at top (prominent): current plan name with large indicator, "Currently active" badge
+  - Battery life estimate with current plan vs optimized estimate
+- **Plan selector cards**: 3 cards for each plan
+  - Each: radio button, plan name, description, settings count
+  - Active plan highlighted with accent border
+  - Click to select, "Apply" button (with confirm)
+  - Color: Balanced=green, Performance=orange/red, Saver=blue
+- **Settings section** (when plan selected):
+  - Grouped by category with expandable sections
+  - Each setting: name, current value (dropdown or toggle), description
+  - For AC vs Battery settings: show separate rows or toggle
+  - Critical settings highlighted (e.g., "Turn off hard disk" = system stability risk if set too low)
+- **Quick actions**: 
+  - "Create a power plan" (simulate)
+  - "Restore plan defaults" button
+- **Report section** (bottom): battery life comparison card
+- Style: energy-themed, green/blue tones for power saving, orange for performance
+
+### NavPage additions: 'registry' | 'netconn' | 'filetypes' | 'display' | 'power'
+New icons: Search (registry), GitFork (netconn), FileType (filetypes), Monitor (display), Zap (power)
+
+### IMPORTANT RULES:
+1. After ALL changes: `npx tsc --noEmit` (zero errors required)
+2. npm install already done, do NOT re-run it
+3. Do NOT modify existing working code unless necessary for integration
+4. Keep the dark theme consistent
+5. Sidebar: add new items in logical order after Perf Log, before AI Chat
+6. App.tsx: 5 new switch cases + imports
+7. All simulated data must be realistic and well-structured
