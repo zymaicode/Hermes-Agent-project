@@ -1,3 +1,13 @@
 node_modules/
-dist-electron/
-*.js.map
+dist/
+build/
+*.exe
+*.dmg
+*.AppImage
+*.snap
+*.7z
+*.zip
+*.yml
+*.log
+.DS_Store
+electron-builder.yml

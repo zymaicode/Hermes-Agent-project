@@ -1,0 +1,101 @@
+## PCHelper v1.0-beta 发布计划
+
+### 目标
+构建可发布的 Windows 安装包，让用户在真机上真正运行 PCHelper。
+
+> **执行方式：** 每个步骤自行通过 Claude Code 或 delegate_task 执行
+
+---
+
+### Step 1: 修复构建问题
+**Objective:** 准备构建资产（icon）并让 `npm run build` 在 Linux 上能够通过（至少到 Vite build 阶段）
+
+**Files:**
+- Create: `assets/icon.png` (Placeholder — 1x1 transparent PNG, 256x256)
+- Modify: (none needed)
+
+**Verification:**
+```bash
+cd /home/ubuntu/workspace/pc-toolkit
+# Vite build should work (electron-builder needs Windows)
+npx --package vite vite build 2>&1 | tail -5
+```
+Note: electron-builder on Linux can't build Windows .exe — we'll verify the Vite build works and document that final .exe packaging requires Windows or cross-compilation setup.
+
+---
+
+### Step 2: 替换修复器为真实执行（无需UAC的）
+
+**Objective:** 让 tempCleaner、browserCleaner、systemCleaner 在 Windows 上真正执行清理操作
+
+**Files:**
+- Read: `electron/cleanup/tempCleaner.ts`
+- Read: `electron/cleanup/browserCleaner.ts`
+- Read: `electron/cleanup/systemCleaner.ts`
+
+**Goal:** 在代码逻辑层加上 platform 检测 + 真实 Windows 命令执行（`del /q/f/s %TEMP%` 等），但保留模拟回退。
+
+**Verification:** tsc 编译通过
+
+---
+
+### Step 3: 连接 Overlay 到真实硬件数据
+
+**Objective:** 让 Overlay 数据采集器使用 HardwareCollector 的真实数据而非纯模拟
+
+**Files:**
+- Read: `electron/overlay/dataCollector.ts`
+- Read: `electron/hardware/collector.ts`
+
+**Goal:** 在 dataCollector 中 import HardwareCollector，获取真实的 CPU/内存/GPU 数据，只模拟 FPS 和网络。
+
+**Verification:** tsc 编译通过
+
+---
+
+### Step 4: 添加 .gitignore 排除构建产物
+
+**Objective:** 避免 build/ 和 dist/ 被 commit
+
+**Files:**
+- Create/Modify: `.gitignore`
+
+**Content:**
+```
+node_modules/
+dist/
+build/
+*.exe
+*.dmg
+*.AppImage
+*.log
+.DS_Store
+```
+
+**Verification:** `git status` 不显示 dist/ 等目录
+
+---
+
+### Step 5: 添加 v1.0-beta 发布说明
+
+**Objective:** 创建说明文档，标记适用范围
+
+**Files:**
+- Create: `RELEASE_NOTES.md`
+
+**Content:**
+简要描述当前功能列表、模拟数据说明、已知限制。
+
+---
+
+### Step 6: 最终检查和提交
+
+**Objective:** 确保 tsc 编译通过，全部 git add/commit/push
+
+**Verification:**
+```bash
+npx tsc --noEmit
+git add -A
+git commit -m "release: v1.0-beta - build preparation and real-data integration"
+git push origin main
+```
