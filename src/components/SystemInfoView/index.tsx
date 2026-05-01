@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Monitor, Cpu, Battery, Clock, HardDrive, RefreshCw, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { useSystemStore } from '../../stores/systemStore';
+import { LoadingSpinner } from '../common/LoadingState';
 
 export default function SystemInfoView() {
   const { info, loading, envSearch, fetchInfo, setEnvSearch } = useSystemStore();
@@ -12,9 +13,7 @@ export default function SystemInfoView() {
 
   if (loading || !info) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>
-        Loading system information...
-      </div>
+      <LoadingSpinner />
     );
   }
 

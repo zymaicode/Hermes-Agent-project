@@ -4,6 +4,7 @@ import {
   Fingerprint, Key, UserCog, HardDrive, RefreshCw, Globe, Monitor, AlertTriangle,
 } from 'lucide-react';
 import { useSecurityStore } from '../../stores/securityStore';
+import { LoadingSpinner } from '../common/LoadingState';
 
 const OVERALL_CONFIG: Record<string, { icon: React.ComponentType<{ size?: number }>; color: string; bg: string; label: string }> = {
   protected: { icon: ShieldCheck, color: 'var(--green)', bg: 'rgba(63,185,80,0.08)', label: 'Protected' },
@@ -30,9 +31,7 @@ export default function SecurityView() {
 
   if (loading && !status) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>
-        Loading security status...
-      </div>
+      <LoadingSpinner />
     );
   }
 

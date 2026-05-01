@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { ClipboardList, FileText, Link, Paperclip, Pin, X, Search, Trash2, Circle } from 'lucide-react';
 import { useClipboardStore } from '../../stores/clipboardStore';
+import { LoadingSpinner, EmptyState } from '../common/LoadingState';
 
 const TYPE_ICONS: Record<string, React.ComponentType<{ size?: number }>> = {
   text: FileText,
@@ -50,9 +51,7 @@ export default function ClipboardView() {
 
   if (loading && entries.length === 0) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>
-        Loading clipboard history...
-      </div>
+      <LoadingSpinner />
     );
   }
 
@@ -200,9 +199,7 @@ export default function ClipboardView() {
         })}
 
         {filtered.length === 0 && (
-          <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: 40 }}>
-            No clipboard entries found
-          </div>
+          <EmptyState icon={<ClipboardList size={48} />} title="No clipboard entries" desc="Clipboard history will appear here as you copy content." />
         )}
       </div>
 

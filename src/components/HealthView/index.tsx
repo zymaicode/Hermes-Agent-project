@@ -14,6 +14,7 @@ import {
   CircuitBoard,
 } from 'lucide-react';
 import { useHealthStore } from '../../stores/healthStore';
+import { LoadingSpinner } from '../common/LoadingState';
 import type { HealthCategory } from '../../utils/types';
 
 function getGradeColor(grade: string): string {
@@ -269,10 +270,7 @@ export default function HealthView() {
       </div>
 
       {loading && !score ? (
-        <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-secondary)' }}>
-          <span style={{ marginBottom: 12, opacity: 0.5, display: 'inline-block' }}><RefreshCw size={32} /></span>
-          <div>Calculating health score...</div>
-        </div>
+        <LoadingSpinner size={32} />
       ) : score ? (
         <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 24 }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

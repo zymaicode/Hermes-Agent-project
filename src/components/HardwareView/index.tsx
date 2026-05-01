@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { Cpu, MemoryStick, HardDrive, Monitor, CircuitBoard } from 'lucide-react';
 import { useHardwareStore } from '../../stores/hardwareStore';
+import { LoadingSpinner } from '../common/LoadingState';
 import type { HardwareSnapshot } from '../../utils/types';
 
 type HardwareTab = 'cpu' | 'memory' | 'disk' | 'gpu' | 'motherboard';
@@ -217,9 +218,7 @@ export default function HardwareView() {
 
   if (!snapshot) {
     return (
-      <div className="flex items-center justify-center" style={{ height: '100%' }}>
-        <div style={{ color: 'var(--text-secondary)' }}>Loading hardware data...</div>
-      </div>
+      <LoadingSpinner />
     );
   }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Cpu, HardDrive, Heart, MemoryStick, Monitor, Thermometer, ChevronDown, ChevronRight } from 'lucide-react';
 import {
   LineChart, Line, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
@@ -28,35 +28,39 @@ function MiniSparkline({ data, color, useLine }: { data: Array<{ val: number }>;
   if (data.length < 2) return null;
   if (useLine) {
     return (
-      <ResponsiveContainer width="100%" height={40}>
-        <LineChart data={data}>
-          <Line type="monotone" dataKey="val" stroke={color} strokeWidth={1.5} dot={false} isAnimationActive={false} />
-        </LineChart>
-      </ResponsiveContainer>
+      <div className="animate-fadeIn">
+        <ResponsiveContainer width="100%" height={40}>
+          <LineChart data={data}>
+            <Line type="monotone" dataKey="val" stroke={color} strokeWidth={1.5} dot={false} isAnimationActive={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     );
   }
   return (
-    <ResponsiveContainer width="100%" height={40}>
-      <AreaChart data={data}>
-        <defs>
-          <linearGradient id={`grad-${color}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity={0.3} />
-            <stop offset="100%" stopColor={color} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <Area type="monotone" dataKey="val" stroke={color} fill={`url(#grad-${color})`} strokeWidth={1.5} dot={false} isAnimationActive={false} />
-      </AreaChart>
-    </ResponsiveContainer>
+    <div className="animate-fadeIn">
+      <ResponsiveContainer width="100%" height={40}>
+        <AreaChart data={data}>
+          <defs>
+            <linearGradient id={`grad-${color}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.3} />
+              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <Area type="monotone" dataKey="val" stroke={color} fill={`url(#grad-${color})`} strokeWidth={1.5} dot={false} isAnimationActive={false} />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
-function StatCard({ title, icon: Icon, value, unit, subtitle, color, history, timestamp, useLine, onClick, expanded }: {
+function StatCard({ title, icon: Icon, value, unit, subtitle, color, history, timestamp, useLine, onClick, expanded, className, style }: {
   title: string; icon: React.ComponentType<{ size?: number }>; value: string; unit: string; subtitle: string;
   color: string; history: Array<{ val: number }>; timestamp: string; useLine?: boolean;
-  onClick?: () => void; expanded?: boolean;
+  onClick?: () => void; expanded?: boolean; className?: string; style?: React.CSSProperties;
 }) {
   return (
-    <div className="card" style={{ position: 'relative', overflow: 'hidden', cursor: onClick ? 'pointer' : 'default' }} onClick={onClick}>
+    <div className={`card${className ? ` ${className}` : ''}`} style={{ position: 'relative', overflow: 'hidden', cursor: onClick ? 'pointer' : 'default', ...style }} onClick={onClick}>
       <div className="card-header">
         <span className="card-title">{title}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -97,6 +101,7 @@ function DetailItem({ label, value }: { label: string; value: string }) {
 }
 
 const PERF_TABS = ['CPU', 'Memory', 'Disk', 'Temperature'] as const;
+const CARD_STAGGER_DELAYS = [0.1, 0.15, 0.2, 0.25, 0.3];
 
 export default function Dashboard() {
   const snapshot = useHardwareStore((s) => s.snapshot);
@@ -111,6 +116,10 @@ export default function Dashboard() {
   const [diskActivity, setDiskActivity] = useState<Array<{ name: string; read: number; write: number }>>([]);
   const [memComposition, setMemComposition] = useState<Array<{ time: number; used: number; cache: number; free: number }>>([]);
   const tickRef = useRef(0);
+  const [sliderStyle, setSliderStyle] = useState({ left: 0, width: 0 });
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const prevDisplayRef = useRef({ cpu: '', memory: '', disk: '', gpu: '' });
+  const [highlighted, setHighlighted] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (snapshot) {
@@ -147,7 +156,39 @@ export default function Dashboard() {
       const next = [...prev, { time: t, used: Math.max(0, used), cache: Math.max(0, cache), free: snapshot.memory.available }];
       return next.slice(-60);
     });
+
+    // Detect value changes for highlight animation
+    const cpuKey = snapshot.cpu.usage.toFixed(1);
+    const memKey = snapshot.memory.usagePercent.toFixed(1);
+    const diskKey = (snapshot.disks[0]?.usagePercent ?? 0).toFixed(0);
+    const gpuKey = snapshot.gpu.usage.toFixed(1);
+    const prev = prevDisplayRef.current;
+    const newHighlights = new Set<string>();
+    if (prev.cpu !== cpuKey && prev.cpu !== '') newHighlights.add('cpu');
+    if (prev.memory !== memKey && prev.memory !== '') newHighlights.add('memory');
+    if (prev.disk !== diskKey && prev.disk !== '') newHighlights.add('disk');
+    if (prev.gpu !== gpuKey && prev.gpu !== '') newHighlights.add('gpu');
+    prevDisplayRef.current = { cpu: cpuKey, memory: memKey, disk: diskKey, gpu: gpuKey };
+    if (newHighlights.size > 0) {
+      setHighlighted(newHighlights);
+      const timer = setTimeout(() => setHighlighted(new Set()), 500);
+      return () => clearTimeout(timer);
+    }
   }, [snapshot]);
+
+  // Update tab slider position
+  const updateSlider = useCallback(() => {
+    const el = tabRefs.current[perfTab];
+    if (el) {
+      setSliderStyle({ left: el.offsetLeft, width: el.offsetWidth });
+    }
+  }, [perfTab]);
+
+  useEffect(() => {
+    updateSlider();
+    const handle = requestAnimationFrame(() => updateSlider());
+    return () => cancelAnimationFrame(handle);
+  }, [perfTab, updateSlider]);
 
   const perfHistoryData = useMemo(() => {
     if (!snapshot) return [];
@@ -180,7 +221,7 @@ export default function Dashboard() {
   const latestDiskActivity = diskActivity.slice(-snapshot.disks.length);
 
   return (
-    <div className="flex-col" style={{ height: '100%', overflowY: 'auto' }}>
+    <div className="flex-col animate-fadeIn" style={{ height: '100%', overflowY: 'auto' }}>
       <div className="flex items-center justify-between mb-4">
         <h2 style={{ fontSize: 20, fontWeight: 600 }}>Dashboard</h2>
         <div className="flex items-center gap-2">
@@ -195,21 +236,30 @@ export default function Dashboard() {
           subtitle={`${cpu.name} · ${cpu.temp}°C`} color={getUsageColor(cpu.usage)}
           history={cpuHistory} timestamp={timestamp} useLine
           onClick={() => setCpuExpanded(!cpuExpanded)} expanded={cpuExpanded}
+          className={`animate-slideUp${highlighted.has('cpu') ? ' animate-pulse-glow' : ''}`}
+          style={{ animationDelay: `${CARD_STAGGER_DELAYS[0]}s`, animationFillMode: 'both' }}
         />
         <StatCard title="Memory" icon={MemoryStick} value={memory.used.toFixed(1)} unit="GB"
           subtitle={`of ${memory.total} GB · ${memory.usagePercent.toFixed(1)}%`}
           color={getUsageColor(memory.usagePercent)} history={memHistory} timestamp={timestamp}
+          className={`animate-slideUp${highlighted.has('memory') ? ' animate-pulse-glow' : ''}`}
+          style={{ animationDelay: `${CARD_STAGGER_DELAYS[1]}s`, animationFillMode: 'both' }}
         />
         <StatCard title="Disk (C:)" icon={HardDrive} value={disks[0].used.toFixed(0)} unit="GB"
           subtitle={`of ${formatBytes(disks[0].total)} · ${disks[0].usagePercent}%`}
           color={getUsageColor(disks[0].usagePercent)} history={diskHistory} timestamp={timestamp}
+          className={`animate-slideUp${highlighted.has('disk') ? ' animate-pulse-glow' : ''}`}
+          style={{ animationDelay: `${CARD_STAGGER_DELAYS[2]}s`, animationFillMode: 'both' }}
         />
         <StatCard title="GPU" icon={Monitor} value={gpu.usage.toFixed(1)} unit="%"
           subtitle={`${gpu.name.split(' ').slice(-1)[0]} · ${gpu.temp}°C`}
           color={getUsageColor(gpu.usage)} history={gpuHistory} timestamp={timestamp}
+          className={`animate-slideUp${highlighted.has('gpu') ? ' animate-pulse-glow' : ''}`}
+          style={{ animationDelay: `${CARD_STAGGER_DELAYS[3]}s`, animationFillMode: 'both' }}
         />
         {healthScore && (
-          <div className="card" style={{ position: 'relative', overflow: 'hidden' }}>
+          <div className={`card animate-slideUp${highlighted.has('health') ? ' animate-pulse-glow' : ''}`}
+            style={{ position: 'relative', overflow: 'hidden', animationDelay: `${CARD_STAGGER_DELAYS[4]}s`, animationFillMode: 'both' }}>
             <div className="card-header">
               <span className="card-title">Health Score</span>
               <span style={{ color: getHealthColor(healthScore.total) }}><Heart size={16} /></span>
@@ -237,7 +287,7 @@ export default function Dashboard() {
 
       {/* CPU Expanded Detail Panel */}
       {cpuExpanded && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+        <div className="animate-slideDown" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
           <div className="card">
             <div className="card-header"><span className="card-title">Per-Core Usage</span></div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -332,29 +382,37 @@ export default function Dashboard() {
         <div className="card-header">
           <span className="card-title">Performance History</span>
         </div>
-        <div className="tabs" style={{ marginBottom: 12 }}>
+        <div className="tab-indicator-wrapper">
           {PERF_TABS.map((tab) => (
-            <button key={tab} className={`tab${perfTab === tab ? ' active' : ''}`} onClick={() => setPerfTab(tab)}>{tab}</button>
+            <button
+              key={tab}
+              ref={(el) => { tabRefs.current[tab] = el; }}
+              className={`tab${perfTab === tab ? ' active' : ''}`}
+              onClick={() => setPerfTab(tab)}
+            >{tab}</button>
           ))}
+          <div className="tab-slider" style={{ left: sliderStyle.left, width: sliderStyle.width }} />
         </div>
-        <ResponsiveContainer width="100%" height={220}>
-          <AreaChart data={perfHistoryData}>
-            <defs>
-              <linearGradient id="perf-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <XAxis dataKey="idx" hide />
-            <YAxis domain={perfTab === 'Temperature' ? [20, 100] : [0, 100]} hide />
-            <Tooltip
-              contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 6, fontSize: 12 }}
-              labelStyle={{ color: 'var(--text-secondary)' }}
-              formatter={(value: number) => [`${value.toFixed(1)}${perfTab === 'Temperature' ? '°C' : '%'}`, perfTab]}
-            />
-            <Area type="monotone" dataKey={perfTab} stroke="var(--accent)" fill="url(#perf-grad)" strokeWidth={2} dot={false} isAnimationActive={false} />
-          </AreaChart>
-        </ResponsiveContainer>
+        <div style={{ marginTop: 12 }}>
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={perfHistoryData}>
+              <defs>
+                <linearGradient id="perf-grad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="idx" hide />
+              <YAxis domain={perfTab === 'Temperature' ? [20, 100] : [0, 100]} hide />
+              <Tooltip
+                contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 6, fontSize: 12 }}
+                labelStyle={{ color: 'var(--text-secondary)' }}
+                formatter={(value: number) => [`${value.toFixed(1)}${perfTab === 'Temperature' ? '°C' : '%'}`, perfTab]}
+              />
+              <Area type="monotone" dataKey={perfTab} stroke="var(--accent)" fill="url(#perf-grad)" strokeWidth={2} dot={false} isAnimationActive={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* System Overview */}

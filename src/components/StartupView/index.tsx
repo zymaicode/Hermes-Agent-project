@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Zap, Search, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react';
 import { useStartupStore } from '../../stores/startupStore';
+import { EmptyState } from '../common/LoadingState';
 
 const TYPE_BADGE_COLORS: Record<string, { bg: string; color: string }> = {
   registry: { bg: 'rgba(88,166,255,0.12)', color: 'var(--accent)' },
@@ -174,7 +175,7 @@ export default function StartupView() {
           </tbody>
         </table>
         {filtered.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 32, color: 'var(--text-secondary)' }}>No startup apps found</div>
+          <EmptyState icon={<Zap size={48} />} title="No startup apps found" />
         )}
       </div>
     </div>

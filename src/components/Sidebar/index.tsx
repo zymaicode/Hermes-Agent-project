@@ -42,42 +42,76 @@ interface NavItem {
   id: NavPage;
   label: string;
   icon: React.ComponentType<{ size?: number }>;
-  badge?: number;
 }
 
-const navItems: NavItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'hardware', label: 'Hardware', icon: Cpu },
-  { id: 'software', label: 'Software', icon: Monitor },
-  { id: 'apps', label: 'Apps', icon: AppWindow },
-  { id: 'startup', label: 'Startup', icon: Zap },
-  { id: 'network', label: 'Network', icon: Wifi },
-  { id: 'conflicts', label: 'Conflicts', icon: AlertTriangle },
-  { id: 'updates', label: 'Updates', icon: RefreshCw },
-  { id: 'alerts', label: 'Alerts', icon: Bell },
-  { id: 'health', label: 'Health', icon: Heart },
-  { id: 'temperatures', label: 'Temps', icon: Thermometer },
-  { id: 'process', label: 'Processes', icon: Activity },
-  { id: 'system', label: 'System', icon: Monitor },
-  { id: 'benchmark', label: 'Benchmark', icon: Gauge },
-  { id: 'scheduler', label: 'Tasks', icon: Calendar },
-  { id: 'firewall', label: 'Firewall', icon: Shield },
-  { id: 'usb', label: 'USB Devices', icon: Usb },
-  { id: 'diskcleanup', label: 'Disk Cleanup', icon: Trash2 },
-  { id: 'security', label: 'Security', icon: ShieldCheck },
-  { id: 'clipboard', label: 'Clipboard', icon: ClipboardList },
-  { id: 'drivers', label: 'Drivers', icon: Cpu },
-  { id: 'services', label: 'Services', icon: Server },
-  { id: 'eventlog', label: 'Event Log', icon: ScrollText },
-  { id: 'battery', label: 'Battery', icon: Battery },
-  { id: 'perflog', label: 'Perf Log', icon: LineChart },
-  { id: 'registry', label: 'Registry', icon: Search },
-  { id: 'netconn', label: 'Net Connections', icon: GitFork },
-  { id: 'filetypes', label: 'File Types', icon: FileType },
-  { id: 'display', label: 'Display', icon: MonitorSmartphone },
-  { id: 'power', label: 'Power Plan', icon: Zap },
-  { id: 'ai', label: 'AI Chat', icon: MessageSquare },
-  { id: 'settings', label: 'Settings', icon: Settings },
+const navSections: { heading: string; items: NavItem[] }[] = [
+  {
+    heading: 'Monitoring',
+    items: [
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'hardware', label: 'Hardware', icon: Cpu },
+      { id: 'software', label: 'Software', icon: Monitor },
+      { id: 'temperatures', label: 'Temps', icon: Thermometer },
+      { id: 'network', label: 'Network', icon: Wifi },
+    ],
+  },
+  {
+    heading: 'System',
+    items: [
+      { id: 'process', label: 'Processes', icon: Activity },
+      { id: 'startup', label: 'Startup', icon: Zap },
+      { id: 'services', label: 'Services', icon: Server },
+      { id: 'drivers', label: 'Drivers', icon: Cpu },
+    ],
+  },
+  {
+    heading: 'Tools',
+    items: [
+      { id: 'benchmark', label: 'Benchmark', icon: Gauge },
+      { id: 'registry', label: 'Registry', icon: Search },
+      { id: 'diskcleanup', label: 'Disk Cleanup', icon: Trash2 },
+      { id: 'filetypes', label: 'File Types', icon: FileType },
+    ],
+  },
+  {
+    heading: 'Security',
+    items: [
+      { id: 'firewall', label: 'Firewall', icon: Shield },
+      { id: 'security', label: 'Security', icon: ShieldCheck },
+      { id: 'usb', label: 'USB Devices', icon: Usb },
+    ],
+  },
+  {
+    heading: 'Management',
+    items: [
+      { id: 'apps', label: 'Apps', icon: AppWindow },
+      { id: 'updates', label: 'Updates', icon: RefreshCw },
+      { id: 'scheduler', label: 'Tasks', icon: Calendar },
+      { id: 'power', label: 'Power Plan', icon: Zap },
+    ],
+  },
+  {
+    heading: 'Data',
+    items: [
+      { id: 'health', label: 'Health', icon: Heart },
+      { id: 'alerts', label: 'Alerts', icon: Bell },
+      { id: 'conflicts', label: 'Conflicts', icon: AlertTriangle },
+      { id: 'battery', label: 'Battery', icon: Battery },
+      { id: 'clipboard', label: 'Clipboard', icon: ClipboardList },
+      { id: 'perflog', label: 'Perf Log', icon: LineChart },
+      { id: 'eventlog', label: 'Event Log', icon: ScrollText },
+      { id: 'netconn', label: 'Net Connections', icon: GitFork },
+    ],
+  },
+  {
+    heading: 'Other',
+    items: [
+      { id: 'display', label: 'Display', icon: MonitorSmartphone },
+      { id: 'system', label: 'System Info', icon: Monitor },
+      { id: 'ai', label: 'AI Chat', icon: MessageSquare },
+      { id: 'settings', label: 'Settings', icon: Settings },
+    ],
+  },
 ];
 
 export default function Sidebar() {
@@ -101,8 +135,32 @@ export default function Sidebar() {
     fetchHealthScore();
   }, [scanConflicts, scanForUpdates, fetchAlerts, fetchHealthScore]);
 
+  const getBadge = (id: NavPage) => {
+    if (id === 'conflicts' && highCount > 0) {
+      return { count: highCount, bg: 'var(--red)', color: '#fff' };
+    }
+    if (id === 'updates' && updatesCount > 0) {
+      return { count: updatesCount, bg: 'var(--yellow)', color: '#000' };
+    }
+    if (id === 'alerts' && criticalAlertCount > 0) {
+      return { count: criticalAlertCount, bg: 'var(--red)', color: '#fff' };
+    }
+    if (id === 'health' && healthScore !== undefined) {
+      return {
+        count: healthScore,
+        bg: healthScore >= 85 ? 'var(--green)' :
+            healthScore >= 70 ? 'var(--accent)' :
+            healthScore >= 50 ? 'var(--yellow)' :
+            healthScore >= 30 ? 'var(--orange)' :
+            'var(--red)',
+        color: healthScore >= 50 ? '#000' : '#fff',
+      };
+    }
+    return null;
+  };
+
   return (
-    <div className="sidebar">
+    <div className="sidebar" style={{ scrollBehavior: 'smooth' }}>
       <div style={{ padding: '16px 12px 12px' }}>
         <div
           style={{
@@ -138,130 +196,76 @@ export default function Sidebar() {
         </div>
 
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = currentPage === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setPage(item.id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '8px 12px',
-                  borderRadius: 'var(--radius)',
-                  border: 'none',
-                  background: isActive ? 'var(--accent-muted)' : 'transparent',
-                  color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                  fontSize: 13,
-                  fontWeight: isActive ? 500 : 400,
-                  textAlign: 'left',
-                  width: '100%',
-                  transition: 'background 0.15s, color 0.15s',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'var(--bg-hover)';
-                    e.currentTarget.style.color = 'var(--text-primary)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = 'var(--text-secondary)';
-                  }
-                }}
-              >
-                <Icon size={18} />
-                <span style={{ flex: 1 }}>{item.label}</span>
-                {item.id === 'conflicts' && highCount > 0 && (
-                  <span
+          {navSections.map((section) => (
+            <div key={section.heading}>
+              <div className="sidebar-section">{section.heading}</div>
+              {section.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = currentPage === item.id;
+                const badge = getBadge(item.id);
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setPage(item.id)}
                     style={{
-                      background: 'var(--red)',
-                      color: '#fff',
-                      fontSize: 10,
-                      fontWeight: 700,
-                      minWidth: 18,
-                      height: 18,
-                      borderRadius: 9,
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '0 5px',
+                      gap: 10,
+                      padding: '8px 12px',
+                      borderRadius: 'var(--radius)',
+                      border: 'none',
+                      background: isActive ? 'var(--accent-muted)' : 'transparent',
+                      color: isActive ? 'var(--accent)' : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      fontSize: 13,
+                      fontWeight: isActive ? 500 : 400,
+                      textAlign: 'left' as const,
+                      width: '100%',
+                      transition: 'background 0.15s, color 0.15s',
+                      borderLeft: isActive ? '3px solid var(--accent)' : '3px solid transparent',
+                      paddingLeft: isActive ? 9 : 12,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'var(--bg-hover)';
+                        e.currentTarget.style.color = 'var(--text-primary)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = 'var(--text-secondary)';
+                      }
                     }}
                   >
-                    {highCount}
-                  </span>
-                )}
-                {item.id === 'updates' && updatesCount > 0 && (
-                  <span
-                    style={{
-                      background: 'var(--yellow)',
-                      color: '#000',
-                      fontSize: 10,
-                      fontWeight: 700,
-                      minWidth: 18,
-                      height: 18,
-                      borderRadius: 9,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '0 5px',
-                    }}
-                  >
-                    {updatesCount}
-                  </span>
-                )}
-                {item.id === 'alerts' && criticalAlertCount > 0 && (
-                  <span
-                    style={{
-                      background: 'var(--red)',
-                      color: '#fff',
-                      fontSize: 10,
-                      fontWeight: 700,
-                      minWidth: 18,
-                      height: 18,
-                      borderRadius: 9,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '0 5px',
-                    }}
-                  >
-                    {criticalAlertCount}
-                  </span>
-                )}
-                {item.id === 'health' && healthScore !== undefined && (
-                  <span
-                    style={{
-                      background:
-                        healthScore >= 85 ? 'var(--green)' :
-                        healthScore >= 70 ? 'var(--accent)' :
-                        healthScore >= 50 ? 'var(--yellow)' :
-                        healthScore >= 30 ? 'var(--orange)' :
-                        'var(--red)',
-                      color: healthScore >= 50 ? '#000' : '#fff',
-                      fontSize: 10,
-                      fontWeight: 700,
-                      minWidth: 18,
-                      height: 18,
-                      borderRadius: 9,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '0 5px',
-                    }}
-                  >
-                    {healthScore}
-                  </span>
-                )}
-                {isActive && <ChevronRight size={14} />}
-              </button>
-            );
-          })}
+                    <Icon size={18} />
+                    <span style={{ flex: 1 }}>{item.label}</span>
+                    {badge && (
+                      <span
+                        style={{
+                          background: badge.bg,
+                          color: badge.color,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          minWidth: 18,
+                          height: 18,
+                          borderRadius: 9,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '0 5px',
+                        }}
+                      >
+                        {badge.count}
+                      </span>
+                    )}
+                    {isActive && <ChevronRight size={14} />}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
       </div>
 

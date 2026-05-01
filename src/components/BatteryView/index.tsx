@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useBatteryStore } from '../../stores/batteryStore';
+import { LoadingSpinner } from '../common/LoadingState';
 
 function batteryIcon(percent: number) {
   if (percent > 80) return <BatteryFull size={48} style={{ color: 'var(--green)' }} />;
@@ -48,9 +49,7 @@ export default function BatteryView() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>
-        Checking battery...
-      </div>
+      <LoadingSpinner />
     );
   }
 
