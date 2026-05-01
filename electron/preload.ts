@@ -275,4 +275,35 @@ contextBridge.exposeInMainWorld('pchelper', {
   exportReportText: (report: unknown) => ipcRenderer.invoke('pchelper:export-report-text', report),
   exportReportCsv: (section: string, data: unknown[]) => ipcRenderer.invoke('pchelper:export-report-csv', section, data),
   getReportTemplates: () => ipcRenderer.invoke('pchelper:get-report-templates'),
+
+  // Memory Analyzer
+  getMemoryModules: () => ipcRenderer.invoke('pchelper:get-memory-modules'),
+  getMemoryAllocation: () => ipcRenderer.invoke('pchelper:get-memory-allocation'),
+  getMemoryTimings: () => ipcRenderer.invoke('pchelper:get-memory-timings'),
+  getMemoryHealth: () => ipcRenderer.invoke('pchelper:get-memory-health'),
+  getPageFile: () => ipcRenderer.invoke('pchelper:get-page-file'),
+
+  // Windows Features Manager
+  getWindowsFeatures: () => ipcRenderer.invoke('pchelper:get-windows-features'),
+  getFeatureCategories: () => ipcRenderer.invoke('pchelper:get-feature-categories'),
+  toggleFeature: (name: string, enable: boolean) => ipcRenderer.invoke('pchelper:toggle-feature', name, enable),
+  getFeatureDetails: (name: string) => ipcRenderer.invoke('pchelper:get-feature-details', name),
+  getFeatureInstallSize: () => ipcRenderer.invoke('pchelper:get-feature-install-size'),
+
+  // Sound Manager
+  getSoundScheme: () => ipcRenderer.invoke('pchelper:get-sound-scheme'),
+  getSoundSchemes: () => ipcRenderer.invoke('pchelper:get-sound-schemes'),
+  getAudioDevices: () => ipcRenderer.invoke('pchelper:get-audio-devices'),
+  setSoundScheme: (name: string) => ipcRenderer.invoke('pchelper:set-sound-scheme', name),
+  setSoundEvent: (eventName: string, file: string | null) => ipcRenderer.invoke('pchelper:set-sound-event', eventName, file),
+  resetSoundDefaults: () => ipcRenderer.invoke('pchelper:reset-sound-defaults'),
+  testSystemSound: (eventName: string) => ipcRenderer.invoke('pchelper:test-system-sound', eventName),
+  playSoundFile: (path: string) => ipcRenderer.invoke('pchelper:play-sound-file', path),
+
+  // Font Manager
+  getFonts: () => ipcRenderer.invoke('pchelper:get-fonts'),
+  getFontPreview: (fontName: string, text: string, size: number) => ipcRenderer.invoke('pchelper:get-font-preview', fontName, text, size),
+  getFontDetail: (name: string) => ipcRenderer.invoke('pchelper:get-font-detail', name),
+  getFontsGrouped: () => ipcRenderer.invoke('pchelper:get-fonts-grouped'),
+  getRecentFonts: () => ipcRenderer.invoke('pchelper:get-recent-fonts'),
 });

@@ -18,6 +18,10 @@ import type { RestorePoint, RestoreSettings } from '../../electron/restore/manag
 import type { ScannedFile, ScanConfig } from '../../electron/files/scanner';
 import type { RemoteConnection } from '../../electron/remote/manager';
 import type { ExportReport, ReportTemplate } from '../../electron/report/exporter';
+import type { MemoryModule, MemoryAllocation, MemoryTiming, MemoryHealth, PageFileInfo } from '../../electron/memory/analyzer';
+import type { WindowsFeature } from '../../electron/features/manager';
+import type { SoundScheme, SystemSound, AudioDevice } from '../../electron/sounds/manager';
+import type { FontEntry } from '../../electron/fonts/manager';
 
 export {};
 
@@ -247,6 +251,53 @@ declare global {
       exportReportText: (report: ExportReport) => Promise<string>;
       exportReportCsv: (section: string, data: unknown[]) => Promise<string>;
       getReportTemplates: () => Promise<ReportTemplate[]>;
+
+      // Memory Analyzer
+      getMemoryModules: () => Promise<MemoryModule[]>;
+      getMemoryAllocation: () => Promise<MemoryAllocation[]>;
+      getMemoryTimings: () => Promise<MemoryTiming>;
+      getMemoryHealth: () => Promise<MemoryHealth>;
+      getPageFile: () => Promise<PageFileInfo>;
+
+      // Windows Features Manager
+      getWindowsFeatures: () => Promise<WindowsFeature[]>;
+      getFeatureCategories: () => Promise<string[]>;
+      toggleFeature: (name: string, enable: boolean) => Promise<{ success: boolean; message: string; restartRequired: boolean }>;
+      getFeatureDetails: (name: string) => Promise<(WindowsFeature & {
+        registryPath: string;
+        imagePath: string;
+        installDate: string | null;
+        logPath: string;
+        statusPaths: string[];
+      }) | null>;
+      getFeatureInstallSize: () => Promise<{ totalEnabledMB: number; totalAvailableMB: number; totalDisabledMB: number }>;
+
+      // Sound Manager
+      getSoundScheme: () => Promise<SoundScheme>;
+      getSoundSchemes: () => Promise<SoundScheme[]>;
+      getAudioDevices: () => Promise<AudioDevice[]>;
+      setSoundScheme: (name: string) => Promise<{ success: boolean }>;
+      setSoundEvent: (eventName: string, file: string | null) => Promise<{ success: boolean }>;
+      resetSoundDefaults: () => Promise<{ success: boolean }>;
+      testSystemSound: (eventName: string) => Promise<{ success: boolean }>;
+      playSoundFile: (path: string) => Promise<{ success: boolean }>;
+
+      // Font Manager
+      getFonts: () => Promise<FontEntry[]>;
+      getFontPreview: (fontName: string, text: string, size: number) => Promise<string>;
+      getFontDetail: (name: string) => Promise<(FontEntry & {
+        glyphCount: number;
+        kerningPairs: number;
+        panose: string;
+        fsSelection: string;
+        unicodeRanges: string[];
+        embeddingRights: string;
+        subfamily: string;
+        fullName: string;
+        postScriptName: string;
+      }) | null>;
+      getFontsGrouped: () => Promise<Record<string, FontEntry[]>>;
+      getRecentFonts: () => Promise<string[]>;
     };
   }
 }

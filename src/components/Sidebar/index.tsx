@@ -32,6 +32,10 @@ import {
   MonitorSmartphone,
   RotateCcw,
   FileText,
+  MemoryStick,
+  Package,
+  Volume2,
+  Type,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { useConflictStore } from '../../stores/conflictStore';
@@ -52,6 +56,7 @@ const navSections: { heading: string; items: NavItem[] }[] = [
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { id: 'hardware', label: 'Hardware', icon: Cpu },
+      { id: 'memory', label: 'Memory', icon: MemoryStick },
       { id: 'software', label: 'Software', icon: Monitor },
       { id: 'temperatures', label: 'Temps', icon: Thermometer },
       { id: 'network', label: 'Network', icon: Wifi },
@@ -90,6 +95,7 @@ const navSections: { heading: string; items: NavItem[] }[] = [
       { id: 'updates', label: 'Updates', icon: RefreshCw },
       { id: 'scheduler', label: 'Tasks', icon: Calendar },
       { id: 'power', label: 'Power Plan', icon: Zap },
+      { id: 'features', label: 'Features', icon: Package },
     ],
   },
   {
@@ -118,6 +124,8 @@ const navSections: { heading: string; items: NavItem[] }[] = [
     heading: 'Other',
     items: [
       { id: 'display', label: 'Display', icon: MonitorSmartphone },
+      { id: 'sounds', label: 'Sounds', icon: Volume2 },
+      { id: 'fonts', label: 'Fonts', icon: Type },
       { id: 'system', label: 'System Info', icon: Monitor },
       { id: 'ai', label: 'AI Chat', icon: MessageSquare },
       { id: 'settings', label: 'Settings', icon: Settings },

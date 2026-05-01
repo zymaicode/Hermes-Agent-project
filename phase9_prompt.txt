@@ -1,0 +1,363 @@
+## PCHelper — Phase 9: RAM Map Viewer, Windows Features Manager, System Sounds, Font Manager, Device Manager Enhanced
+
+Current project: 120 files, 22,549 lines, zero TS errors. 36 nav items, 8 sidebar groups.
+
+### Task 1: RAM Map / Memory Details Viewer (`electron/memory/analyzer.ts` + `src/components/MemoryView/index.tsx` + store)
+
+Backend (`electron/memory/analyzer.ts`):
+```typescript
+export interface MemoryModule {
+  slot: string; // "DIMM_A1", "DIMM_A2", "DIMM_B1", "DIMM_B2"
+  type: string; // "DDR4", "DDR5", "LPDDR5"
+  sizeGB: number;
+  speed: number; // MHz
+  manufacturer: string; // "Samsung", "SK Hynix", "Micron", "Kingston"
+  partNumber: string;
+  serialNumber: string;
+  voltage: number; // V
+  rank: 'Single' | 'Dual' | 'Quad';
+  formFactor: 'DIMM' | 'SO-DIMM';
+  isActive: boolean;
+}
+
+export interface MemoryAllocation {
+  category: string; // "System", "Applications", "Cache", "Free", "Standby", "Modified", "Hardware Reserved"
+  sizeMB: number;
+  percentage: number;
+  description: string;
+  color: string; // hex for chart
+}
+
+export interface MemoryTiming {
+  casLatency: number; // CL
+  tRCD: number;
+  tRP: number;
+  tRAS: number;
+  commandRate: number; // 1T, 2T
+}
+
+export interface MemoryHealth {
+  totalSlots: number;
+  usedSlots: number;
+  totalGB: number;
+  maxCapacity: number; // maximum supported by motherboard
+  isDualChannel: boolean;
+  isQuadChannel: boolean;
+  xmpProfile: string | null;
+  speedMismatch: boolean;
+  healthScore: number; // 0-100
+  errors: string[];
+}
+
+export class MemoryAnalyzer {
+  getModules(): MemoryModule[] {
+    // Simulate: 4 DDR5 modules (dual channel config)
+    // 2x16GB Samsung DDR5-6000 in slots A1+B1 (active)
+    // 2x16GB Samsung DDR5-6000 in slots A2+B2 (empty or inactive)
+  }
+
+  getAllocation(): MemoryAllocation[] {
+    // Simulate current memory distribution
+    // Applications: 12GB (30%), Cache: 4GB (10%), Standby: 8GB (20%),
+    // Modified: 1GB (2.5%), Free: 14GB (35%), Hardware Reserved: 1GB (2.5%)
+  }
+
+  getTimings(): MemoryTiming {
+    // CL=30, tRCD=38, tRP=38, tRAS=76, 2T
+  }
+
+  getHealth(): MemoryHealth {
+    // 4/4 slots used, 64GB total, dual channel, XMP profile active
+    // 100 health score (no errors)
+  }
+
+  getPageFile(): { path: string; initialMB: number; maximumMB: number; currentMB: number; isManaged: boolean } {
+    // C:\pagefile.sys, 4096-16384MB, currently 6144MB, system managed
+  }
+}
+```
+
+IPC: `pchelper:get-memory-modules`, `pchelper:get-memory-allocation`, `pchelper:get-memory-timings`, `pchelper:get-memory-health`, `pchelper:get-page-file`
+
+UI (`src/components/MemoryView/index.tsx`):
+- **Health summary card** at top: overall score (0-100 gauge), total/used/available, dual/quad channel indicator
+  - Score color: green >80, yellow 50-80, red <50
+  - Brief stats: "64 GB DDR5-6000" + "Dual Channel" badge
+- **Memory allocation donut chart** (Recharts PieChart): color-coded segments for each category
+  - Click segment to see details
+  - Legend below with percentages
+- **Physical modules section**: cards showing each DIMM slot
+  - Active modules: full card with type, speed, size, manufacturer, serial
+  - Empty slots: dashed outline, "Empty" label
+  - Dual channel indicator: "Channel A: DIMM_A1 + DIMM_A2"
+- **Memory timings table**: CAS Latency, tRCD, tRP, tRAS, Command Rate, Voltage
+  - Show as a compact table with labels and values
+- **Page file card**: path, current usage bar (current / max), system managed toggle
+- **Health warnings** section: if any errors or mismatches, show highlighted warning cards
+- **Top processes by memory**: small table (top 5 from process store) showing memory usage
+- No auto-refresh (static), refresh button
+
+### Task 2: Windows Features Manager (`electron/features/manager.ts` + `src/components/FeaturesView/index.tsx` + store)
+
+Backend (`electron/features/manager.ts`):
+```typescript
+export interface WindowsFeature {
+  name: string;
+  displayName: string;
+  description: string;
+  enabled: boolean;
+  isEnabledByDefault: boolean;
+  category: string; // ".NET Framework", "Hyper-V", "Windows Subsystem for Linux", "Media Features", "Print and Document", etc.
+  featureType: 'role' | 'feature' | 'optional';
+  installState: 'enabled' | 'disabled' | 'enabled_pending_reboot' | 'disabled_pending_reboot';
+  sizeMB: number;
+  dependsOn: string[]; // other feature names
+  dependentFeatures: string[]; // features that depend on this
+  restartRequired: boolean;
+  isCritical: boolean; // system-critical, can't disable
+}
+
+export class WindowsFeaturesManager {
+  getFeatures(): WindowsFeature[] {
+    // Simulate: 40+ Windows features organized by category
+    // Categories: .NET Framework (4 features), Hyper-V (3), WSL (2), 
+    // Media Features (3), Print (4), Internet Information Services (5),
+    // Virtual Machine Platform (2), Windows Sandbox, Windows Defender (2),
+    // PowerShell (2), Linux, Other (10+)
+    // Enabled: ~15, Disabled: ~25
+  }
+
+  getCategories(): string[] { return ['.NET Framework', 'Hyper-V', 'WSL', 'Media', 'Print', 'IIS', 'Virtualization', 'Security', 'PowerShell', 'Other']; }
+
+  toggleFeature(name: string, enable: boolean): { success: boolean; message: string; restartRequired: boolean } {
+    // Simulate toggle, some require restart
+  }
+
+  getFeatureDetails(name: string): WindowsFeature & {
+    registryPath: string;
+    imagePath: string;
+    installDate: string | null;
+    logPath: string;
+    statusPaths: string[];
+  } {
+    // Extended detail
+  }
+
+  getInstallSize(): { totalEnabledMB: number; totalAvailableMB: number; totalDisabledMB: number } {
+    // Summary of disk usage by features
+  }
+}
+```
+
+IPC: `pchelper:get-windows-features`, `pchelper:get-feature-categories`, `pchelper:toggle-feature`, `pchelper:get-feature-details`, `pchelper:get-feature-install-size`
+
+UI (`src/components/FeaturesView/index.tsx`):
+- **Stats row**: total features, enabled count, disabled count, total install size
+- **Category tabs**: horizontal tab bar for each category with count badge
+  - Special: "All" tab (default), "Enabled Only" toggle
+- **Feature cards** (grid):
+  - Each card: feature name (bold), description (truncated), enabled/disabled badge, size badge
+  - Color: green border/enabled badge = enabled, gray = disabled
+  - Enabled cards have a subtle left green bar
+  - Hover: slightly elevated shadow
+  - Checkbox/toggle on each card for enable/disable inline
+- **Detail panel** (click card or dedicated button):
+  - Full description, dependencies list, dependent features
+  - Install state, feature type badge
+  - Restart required warning if applicable
+  - Registry path, log path (monospace, truncated)
+- **Enable/Disable confirmation**:
+  - Modal: "Enable [Feature Name]?" with description
+  - Warning if dependencies will also be enabled/disabled
+  - "Restart may be required" notice
+  - Dependencies tree showing what else will be affected
+- **Search**: filter by name
+- **Refresh** button
+
+### Task 3: System Sounds Manager (`electron/sounds/manager.ts` + `src/components/SoundView/index.tsx` + store)
+
+Backend (`electron/sounds/manager.ts`):
+```typescript
+export interface SoundScheme {
+  name: string;
+  isDefault: boolean;
+  isCurrent: boolean;
+  sounds: SystemSound[];
+}
+
+export interface SystemSound {
+  event: string; // "Windows Logon", "Windows Logoff", "System Notification", "Critical Battery", etc.
+  category: 'windows' | 'notifications' | 'device' | 'alerts' | 'hardware';
+  file: string | null; // path to .wav, null = none
+  isDefault: boolean;
+  volume: number; // 0-100
+  duration: string; // "0.5s", "1.2s"
+  description: string;
+  playable: boolean; // can be previewed
+}
+
+export interface AudioDevice {
+  name: string;
+  type: 'speakers' | 'headphones' | 'headset' | 'monitor' | 'usb' | 'bluetooth' | 'hdmi';
+  isDefault: boolean;
+  status: 'active' | 'disabled' | 'unplugged';
+  volume: number;
+  sampleRate: number;
+  bitDepth: number;
+  channels: number;
+  manufacturer: string;
+  driver: string;
+}
+
+export class SoundManager {
+  getCurrentScheme(): SoundScheme {
+    // Simulate: "Windows Default" scheme with 20+ sound events
+    // Most have default .wav files, some set to "None"
+  }
+
+  getSchemes(): SoundScheme[] {
+    // Simulate: "Windows Default" (current), "No Sounds", "Custom Scheme"
+  }
+
+  getAudioDevices(): AudioDevice[] {
+    // Simulate: Speakers (Realtek), Headphones (USB), Monitor Audio (HDMI)
+  }
+
+  setScheme(name: string): { success: boolean } { }
+  setSoundEvent(event: string, file: string | null): { success: boolean } { }
+  resetToDefaults(): { success: boolean } { }
+  testSound(event: string): { success: boolean } { }
+  playFile(path: string): { success: boolean } { }
+}
+```
+
+IPC: `pchelper:get-sound-scheme`, `pchelper:get-sound-schemes`, `pchelper:get-audio-devices`, `pchelper:set-sound-scheme`, `pchelper:set-sound-event`, `pchelper:reset-sound-defaults`, `pchelper:test-system-sound`, `pchelper:play-sound-file`
+
+UI (`src/components/SoundView/index.tsx`):
+- **Scheme selector** at top: dropdown with 3 schemes, "Apply" button, "Reset to Defaults" button
+  - Current scheme highlighted
+- **Audio devices section** (collapsible): device cards
+  - Each card: device name, type badge (Speakers/Headphones/HDMI/USB etc.)
+  - Default indicator (star icon)
+  - Status: green Active / gray Unplugged / red Disabled
+  - Volume bar, sample rate, bit depth, channels
+  - Driver info
+- **Sound events table** (main content):
+  - Columns: Event Name, Category (badge), Sound File (or "None"), Volume, Duration
+  - Category filters: All / Windows / Notifications / Device / Alerts / Hardware
+  - Search by event name or file
+  - Each row: play button (small speaker icon) to test the sound
+  - Click file cell → file selector (simulated dropdown with "Default", "None", "Windows Sound.wav" options)
+  - Volume slider per event
+  - Category grouping: separator rows between categories
+- **Play on hover**: hover play button shows preview tooltip
+- **Volume master slider** at top right
+- Auto-refresh not needed, static data
+
+### Task 4: Font Manager (`electron/fonts/manager.ts` + `src/components/FontView/index.tsx` + store)
+
+Backend (`electron/fonts/manager.ts`):
+```typescript
+export interface FontEntry {
+  name: string; // "Segoe UI", "Arial", "Consolas"
+  family: string; // "Segoe UI", "Arial"
+  type: 'sans-serif' | 'serif' | 'monospace' | 'display' | 'handwriting' | 'symbol';
+  format: 'ttf' | 'otf' | 'woff2';
+  version: string;
+  designer: string;
+  foundry: string;
+  license: string;
+  filePath: string;
+  fileSizeKB: number;
+  installed: string; // date
+  styles: string[]; // ["Regular", "Bold", "Italic", "Bold Italic", "Light", "Medium", "SemiBold", "Black"]
+  weight: number; // 100-900
+  isSystemFont: boolean;
+  isVariable: boolean; // variable font
+  supportedScripts: string[]; // ["Latin", "Cyrillic", "Greek", "Arabic", "CJK"]
+  sampleText: string; // rendered preview text
+}
+
+export class FontManager {
+  getInstalledFonts(): FontEntry[] {
+    // Simulate: 40+ installed fonts
+    // System fonts: Segoe UI (7 styles), Microsoft Sans Serif, Tahoma,
+    // Consolas, Courier New, Verdana, Arial, Times New Roman
+    // Modern: Inter, JetBrains Mono, Fira Code, Cascadia Code
+    // CJK: Microsoft YaHei, SimSun, Yu Gothic
+    // Design: Montserrat, Poppins, Roboto, Open Sans
+    // Some are variable fonts, some have many styles
+  }
+
+  getFontPreview(fontName: string, text: string, size: number): string {
+    // Return SVG preview data URL
+    // Generate a small SVG showing the text in the font
+  }
+
+  getFontDetail(name: string): FontEntry & {
+    glyphCount: number;
+    kerningPairs: number;
+    panose: string;
+    fsSelection: string;
+    unicodeRanges: string[];
+    embeddingRights: string;
+    subfamily: string;
+    fullName: string;
+    postScriptName: string;
+  } {
+    // Extended details
+  }
+
+  getGroupedByType(): Record<string, FontEntry[]> {
+    // Group all fonts by type for navigation
+  }
+
+  getRecentFonts(): string[] {
+    // Recently used fonts
+    return ['JetBrains Mono', 'Inter', 'Segoe UI', 'Cascadia Code', 'Fira Code'];
+  }
+}
+```
+
+IPC: `pchelper:get-fonts`, `pchelper:get-font-preview`, `pchelper:get-font-detail`, `pchelper:get-fonts-grouped`, `pchelper:get-recent-fonts`
+
+UI (`src/components/FontView/index.tsx`):
+- **Top bar**: search + type filter dropdown (All / Sans-Serif / Serif / Monospace / Display / Handwriting / Symbol) + "Install Font" button
+- **Type tabs**: horizontal tab bar with count per type (e.g., "All (40+)", "Sans-Serif (15)", "Monospace (8)", etc.)
+  - Active tab: accent underline
+- **Font cards grid** (3 columns, responsive):
+  - Each card: font name (large, in its own font if monospace/system), "Aa" sample text (also in font), 
+    - Style badges: "Regular", "Bold", "Italic" pills
+    - Type badge (monospace=green, sans-serif=blue, serif=purple, etc.)
+    - File size badge
+    - System font indicator: small OS icon
+  - Hover: slight elevation
+  - Click to expand detail
+- **Font detail panel** (expanded card or side panel):
+  - Large sample text at different sizes (12px, 24px, 36px, 48px, 72px)
+  - Preview input: type custom text to preview
+  - Full details table: version, designer, foundry, license, format, file path
+  - Styles list with weight labels
+  - Glyph info, kerning pairs, Unicode ranges
+  - "Preview" section with pangram display (e.g., "The quick brown fox jumps over the lazy dog")
+- **Install Font**: opens file dialog (simulated) + installs
+- **Stats footer**: total fonts, total styles, variable font count, average file size
+- **Recent fonts** section at bottom: horizontally scrollable row of recently viewed fonts
+
+### NavPage additions: 'memory' | 'features' | 'sounds' | 'fonts'
+New icons: MemoryStick (memory), Package (features), Volume2 (sounds), Type (fonts)
+
+### Sidebar placement:
+- 'memory' → goes under MONITORING group after Hardware, before Software
+- 'features' → goes under MANAGEMENT group after File Scanner, before Advanced section
+- 'sounds' → goes under OTHER group after Display, before System Info
+- 'fonts' → goes under OTHER group after Sounds, before System Info
+
+### IMPORTANT RULES:
+1. After ALL changes: `npx tsc --noEmit` (zero errors required)
+2. npm install already done, do NOT re-run it
+3. Do NOT modify existing working code unless necessary for integration
+4. Keep the dark theme consistent, use existing common components
+5. App.tsx: 4 new switch cases + imports
+6. All simulated data must be realistic and complete
+7. Font preview should be informative and visually appealing

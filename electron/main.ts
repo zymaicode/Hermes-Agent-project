@@ -33,6 +33,10 @@ import { RestoreManager } from './restore/manager';
 import { FileScanner } from './files/scanner';
 import { RemoteDesktopManager } from './remote/manager';
 import { ReportExporter } from './report/exporter';
+import { MemoryAnalyzer } from './memory/analyzer';
+import { WindowsFeaturesManager } from './features/manager';
+import { SoundManager } from './sounds/manager';
+import { FontManager } from './fonts/manager';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -67,6 +71,10 @@ const restoreManager = new RestoreManager();
 const fileScanner = new FileScanner();
 const remoteDesktopManager = new RemoteDesktopManager();
 const reportExporter = new ReportExporter();
+const memoryAnalyzer = new MemoryAnalyzer();
+const windowsFeaturesManager = new WindowsFeaturesManager();
+const soundManager = new SoundManager();
+const fontManager = new FontManager();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -879,6 +887,102 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('pchelper:get-report-templates', () =>
     reportExporter.getAvailableTemplates()
+  );
+
+  // Memory Analyzer
+  ipcMain.handle('pchelper:get-memory-modules', () =>
+    memoryAnalyzer.getModules()
+  );
+
+  ipcMain.handle('pchelper:get-memory-allocation', () =>
+    memoryAnalyzer.getAllocation()
+  );
+
+  ipcMain.handle('pchelper:get-memory-timings', () =>
+    memoryAnalyzer.getTimings()
+  );
+
+  ipcMain.handle('pchelper:get-memory-health', () =>
+    memoryAnalyzer.getHealth()
+  );
+
+  ipcMain.handle('pchelper:get-page-file', () =>
+    memoryAnalyzer.getPageFile()
+  );
+
+  // Windows Features Manager
+  ipcMain.handle('pchelper:get-windows-features', () =>
+    windowsFeaturesManager.getFeatures()
+  );
+
+  ipcMain.handle('pchelper:get-feature-categories', () =>
+    windowsFeaturesManager.getCategories()
+  );
+
+  ipcMain.handle('pchelper:toggle-feature', (_event, name: string, enable: boolean) =>
+    windowsFeaturesManager.toggleFeature(name, enable)
+  );
+
+  ipcMain.handle('pchelper:get-feature-details', (_event, name: string) =>
+    windowsFeaturesManager.getFeatureDetails(name)
+  );
+
+  ipcMain.handle('pchelper:get-feature-install-size', () =>
+    windowsFeaturesManager.getInstallSize()
+  );
+
+  // Sound Manager
+  ipcMain.handle('pchelper:get-sound-scheme', () =>
+    soundManager.getCurrentScheme()
+  );
+
+  ipcMain.handle('pchelper:get-sound-schemes', () =>
+    soundManager.getSchemes()
+  );
+
+  ipcMain.handle('pchelper:get-audio-devices', () =>
+    soundManager.getAudioDevices()
+  );
+
+  ipcMain.handle('pchelper:set-sound-scheme', (_event, name: string) =>
+    soundManager.setScheme(name)
+  );
+
+  ipcMain.handle('pchelper:set-sound-event', (_event, eventName: string, file: string | null) =>
+    soundManager.setSoundEvent(eventName, file)
+  );
+
+  ipcMain.handle('pchelper:reset-sound-defaults', () =>
+    soundManager.resetToDefaults()
+  );
+
+  ipcMain.handle('pchelper:test-system-sound', (_event, eventName: string) =>
+    soundManager.testSound(eventName)
+  );
+
+  ipcMain.handle('pchelper:play-sound-file', (_event, path: string) =>
+    soundManager.playFile(path)
+  );
+
+  // Font Manager
+  ipcMain.handle('pchelper:get-fonts', () =>
+    fontManager.getInstalledFonts()
+  );
+
+  ipcMain.handle('pchelper:get-font-preview', (_event, fontName: string, text: string, size: number) =>
+    fontManager.getFontPreview(fontName, text, size)
+  );
+
+  ipcMain.handle('pchelper:get-font-detail', (_event, name: string) =>
+    fontManager.getFontDetail(name)
+  );
+
+  ipcMain.handle('pchelper:get-fonts-grouped', () =>
+    fontManager.getGroupedByType()
+  );
+
+  ipcMain.handle('pchelper:get-recent-fonts', () =>
+    fontManager.getRecentFonts()
   );
 
   // Settings management

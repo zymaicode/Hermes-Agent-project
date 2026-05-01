@@ -37,6 +37,10 @@ import RestoreView from './components/RestoreView';
 import FileScannerView from './components/FileScannerView';
 import RemoteView from './components/RemoteView';
 import ReportView from './components/ReportView';
+import MemoryView from './components/MemoryView';
+import FeaturesView from './components/FeaturesView';
+import SoundView from './components/SoundView';
+import FontView from './components/FontView';
 import TitleBar from './components/TitleBar';
 import { useAppStore } from './stores/appStore';
 import { useHardwareStore } from './stores/hardwareStore';
@@ -117,6 +121,14 @@ function MainContent() {
       return <RemoteView />;
     case 'report':
       return <ReportView />;
+    case 'memory':
+      return <MemoryView />;
+    case 'features':
+      return <FeaturesView />;
+    case 'sounds':
+      return <SoundView />;
+    case 'fonts':
+      return <FontView />;
     default:
       return <Dashboard />;
   }
