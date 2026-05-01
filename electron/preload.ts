@@ -393,4 +393,14 @@ contextBridge.exposeInMainWorld('pchelper', {
     ipcRenderer.invoke('pchelper:accounts-list-credentials'),
   removeCredential: (targetName: string) =>
     ipcRenderer.invoke('pchelper:accounts-remove-credential', targetName),
+
+  // Policy Browser
+  getPolicyCategories: () =>
+    ipcRenderer.invoke('pchelper:policy-get-categories'),
+  getPoliciesByCategory: (categoryId: string) =>
+    ipcRenderer.invoke('pchelper:policy-get-by-category', categoryId),
+  searchPolicies: (query: string) =>
+    ipcRenderer.invoke('pchelper:policy-search', query),
+  getPolicyDetail: (id: string) =>
+    ipcRenderer.invoke('pchelper:policy-get-detail', id),
 });

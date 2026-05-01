@@ -40,6 +40,7 @@ import {
   Eye,
   UserCircle,
   Network,
+  FileCode,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { useConflictStore } from '../../stores/conflictStore';
@@ -110,6 +111,7 @@ const navSections: { heading: string; items: NavItem[] }[] = [
     heading: 'Advanced',
     items: [
       { id: 'restore', label: 'Restore', icon: RotateCcw },
+      { id: 'policy', label: 'Group Policy', icon: FileCode },
       { id: 'filescanner', label: 'File Scanner', icon: Search },
       { id: 'remote', label: 'Remote', icon: Monitor },
       { id: 'report', label: 'Report', icon: FileText },

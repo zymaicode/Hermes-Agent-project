@@ -56,6 +56,7 @@ import { traceRoute } from './netdiag/traceroute';
 import { scanPorts } from './netdiag/portscanner';
 import { dnsLookup } from './netdiag/dns';
 import { testBandwidth } from './netdiag/bandwidth';
+import { PolicyManager } from './policy/policyManager';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -106,6 +107,7 @@ const overlayCollector = new OverlayDataCollector();
 const userManager = new UserManager();
 const uacManager = new UacManager();
 const credentialManager = new CredentialManager();
+const policyManager = new PolicyManager();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -1222,6 +1224,23 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('pchelper:netdiag-bandwidth-test', () =>
     testBandwidth()
+  );
+
+  // Policy Browser
+  ipcMain.handle('pchelper:policy-get-categories', () =>
+    policyManager.getCategories()
+  );
+
+  ipcMain.handle('pchelper:policy-get-by-category', (_event, categoryId: string) =>
+    policyManager.getPoliciesByCategory(categoryId)
+  );
+
+  ipcMain.handle('pchelper:policy-search', (_event, query: string) =>
+    policyManager.searchPolicies(query)
+  );
+
+  ipcMain.handle('pchelper:policy-get-detail', (_event, id: string) =>
+    policyManager.getPolicyById(id)
   );
 
   // Settings management

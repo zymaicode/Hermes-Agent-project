@@ -1,4 +1,5 @@
 import type { HardwareSnapshot, SoftwareEntry, ConflictReport, AppEntry, UninstallResult, UpdateScanResult, Alert, HealthScore, StartupEntry, StartupImpact, NetworkInterface, NetworkTraffic, SpeedTestResult, ProcessEntry, SystemInfo, BenchmarkResult, ScheduledTask, LocalUser, LocalGroup, UacSettings, CredentialEntry } from '../utils/types';
+import type { PolicyCategory, PolicyEntry } from '../../electron/policy/policyManager';
 import type { FirewallRule } from '../../electron/firewall/reader';
 import type { UsbDevice, UsbHistoryEntry } from '../../electron/usb/manager';
 import type { DiskCategory, LargeFile, TempFileCategory } from '../../electron/disk/analyzer';
@@ -415,6 +416,12 @@ declare global {
       getUacSettings: () => Promise<UacSettings>;
       listCredentials: () => Promise<CredentialEntry[]>;
       removeCredential: (targetName: string) => Promise<boolean>;
+
+      // Policy Browser
+      getPolicyCategories: () => Promise<PolicyCategory[]>;
+      getPoliciesByCategory: (categoryId: string) => Promise<PolicyEntry[]>;
+      searchPolicies: (query: string) => Promise<PolicyEntry[]>;
+      getPolicyDetail: (id: string) => Promise<PolicyEntry | null>;
     };
   }
 

@@ -43,6 +43,7 @@ import SoundView from './components/SoundView';
 import FontView from './components/FontView';
 import AccountsView from './components/AccountsView';
 import NetDiagView from './components/NetDiagView';
+import PolicyView from './components/PolicyView';
 import RepairCenter from './components/RepairCenter';
 import PerfOverlay from './components/PerfOverlay';
 import TitleBar from './components/TitleBar';
@@ -141,6 +142,8 @@ function MainContent() {
       return <AccountsView />;
     case 'netdiag':
       return <NetDiagView />;
+    case 'policy':
+      return <PolicyView />;
     default:
       return <Dashboard />;
   }
