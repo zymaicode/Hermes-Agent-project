@@ -3,6 +3,12 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import HardwareView from './components/HardwareView';
 import SoftwareView from './components/SoftwareView';
+import ConflictView from './components/ConflictView';
+import AppManagerView from './components/AppManagerView';
+import UpdateView from './components/UpdateView';
+import AlertHistoryView from './components/AlertHistoryView';
+import HealthView from './components/HealthView';
+import AlertModal from './components/AlertModal';
 import AIChatPanel from './components/AIChatPanel';
 import SettingsView from './components/SettingsView';
 import TitleBar from './components/TitleBar';
@@ -20,16 +26,15 @@ function MainContent() {
     case 'software':
       return <SoftwareView />;
     case 'apps':
-      return (
-        <div className="flex items-center justify-center" style={{ height: '100%' }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>+</div>
-            <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
-              App Manager — Coming in Phase 2
-            </div>
-          </div>
-        </div>
-      );
+      return <AppManagerView />;
+    case 'conflicts':
+      return <ConflictView />;
+    case 'updates':
+      return <UpdateView />;
+    case 'alerts':
+      return <AlertHistoryView />;
+    case 'health':
+      return <HealthView />;
     case 'ai':
       return <AIChatPanel standalone />;
     case 'settings':
@@ -59,6 +64,7 @@ export default function App() {
         </div>
         {chatPanelOpen && <AIChatPanel />}
       </div>
+      <AlertModal />
     </div>
   );
 }

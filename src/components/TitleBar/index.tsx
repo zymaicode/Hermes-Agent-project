@@ -5,6 +5,7 @@ const PAGE_LABELS: Record<string, string> = {
   hardware: 'Hardware',
   software: 'Software',
   apps: 'App Manager',
+  health: 'Health Score',
   ai: 'AI Chat',
   settings: 'Settings',
 };

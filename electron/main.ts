@@ -1,12 +1,22 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'path';
-import { initDatabase, getDatabase, saveHardwareSnapshot, getHardwareHistory, saveChatMessage, getChatHistory, getSetting, setSetting } from './database/index';
+import { initDatabase, getDatabase, saveHardwareSnapshot, getHardwareHistory, saveChatMessage, getChatHistory, getSetting, setSetting, logConflict, dismissConflict, getConflictHistory, saveUpdateHistory, getUpdateHistory, saveAlert, getAlertHistoryFromDb, saveHealthScore, getHealthHistoryFromDb } from './database/index';
 import { HardwareCollector } from './hardware/collector';
 import { SoftwareCollector } from './software/collector';
+import { ConflictDetector } from './conflict/detector';
+import { AppManager } from './software/manager';
+import { SoftwareUpdater } from './software/updater';
+import { AlertEngine } from './alerter/engine';
+import { calculateHealthScore } from './health/scorer';
+import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
 let hardwareCollector: HardwareCollector | null = null;
 const softwareCollector = new SoftwareCollector();
+const conflictDetector = new ConflictDetector();
+const appManager = new AppManager();
+const softwareUpdater = new SoftwareUpdater();
+const alertEngine = new AlertEngine();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -64,6 +74,61 @@ function registerIpcHandlers(): void {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('pchelper:hardware-update', snapshot);
       }
+
+      // Alert engine: check local rules
+      const newAlerts = alertEngine.checkLocalRules(snapshot as unknown as import('./alerter/engine').HardwareSnapshot);
+      for (const alert of newAlerts) {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('pchelper:alert-update', alert);
+        }
+        try {
+          saveAlert({
+            timestamp: alert.timestamp,
+            type: alert.type,
+            severity: alert.severity,
+            title: alert.title,
+            message: alert.message,
+            detail: alert.detail,
+          });
+        } catch {
+          // DB may not be available
+        }
+      }
+
+      // Alert engine: AI analysis every 5 minutes
+      if (alertEngine.shouldRunAiAnalysis()) {
+        alertEngine.markAiAnalysisRun();
+        const apiKey = getSetting('ai_api_key') || '';
+        const endpoint = getSetting('ai_endpoint') || 'https://api.deepseek.com';
+        const model = getSetting('ai_model') || 'deepseek-v4-pro';
+        if (apiKey) {
+          alertEngine.analyzeWithAI(
+            snapshot as unknown as import('./alerter/engine').HardwareSnapshot,
+            apiKey,
+            endpoint,
+            model
+          ).then((aiAlert) => {
+            if (aiAlert && mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('pchelper:alert-update', aiAlert);
+              try {
+                saveAlert({
+                  timestamp: aiAlert.timestamp,
+                  type: aiAlert.type,
+                  severity: aiAlert.severity,
+                  title: aiAlert.title,
+                  message: aiAlert.message,
+                  detail: aiAlert.detail,
+                });
+              } catch {
+                // DB may not be available
+              }
+            }
+          }).catch(() => {
+            // AI analysis failed silently
+          });
+        }
+      }
+
       try {
         const hw = snapshot;
         saveHardwareSnapshot({
@@ -170,6 +235,151 @@ function registerIpcHandlers(): void {
       value: string;
     }>;
   });
+
+  // Conflict detection
+  ipcMain.handle('pchelper:scan-conflicts', () => {
+    const report = conflictDetector.scanConflicts();
+    for (const c of report.conflicts) {
+      try {
+        logConflict({
+          type: c.type,
+          severity: c.severity,
+          title: c.title,
+          description: c.description,
+        });
+      } catch {
+        // DB may not be available
+      }
+    }
+    return report;
+  });
+
+  ipcMain.handle('pchelper:dismiss-conflict', (_event, id: number) => {
+    dismissConflict(id);
+  });
+
+  ipcMain.handle('pchelper:get-conflict-history', (_event, limit?: number) =>
+    getConflictHistory(limit ?? 50)
+  );
+
+  // App Manager
+  ipcMain.handle('pchelper:get-managed-apps', () => appManager.getApps());
+
+  ipcMain.handle('pchelper:uninstall-app', (_event, name: string) =>
+    appManager.uninstallApp(name)
+  );
+
+  ipcMain.handle('pchelper:uninstall-selected', (_event, names: string[]) =>
+    appManager.uninstallSelected(names)
+  );
+
+  ipcMain.handle('pchelper:get-app-details', (_event, name: string) =>
+    appManager.getAppDetails(name)
+  );
+
+  // Software Updates
+  ipcMain.handle('pchelper:scan-updates', () =>
+    softwareUpdater.scanForUpdates(softwareCollector.getInstalledApps())
+      .then((result) => {
+        try {
+          saveUpdateHistory(JSON.stringify(result));
+        } catch {
+          // DB may not be available
+        }
+        return result;
+      })
+  );
+
+  ipcMain.handle('pchelper:get-update-history', (_event, limit?: number) =>
+    getUpdateHistory(limit ?? 10)
+  );
+
+  // Alerts
+  ipcMain.handle('pchelper:get-alerts', () => alertEngine.getActiveAlerts());
+
+  ipcMain.handle('pchelper:dismiss-alert', (_event, id: string) => {
+    alertEngine.dismissAlert(id);
+  });
+
+  ipcMain.handle('pchelper:snooze-alert', (_event, id: string, minutes: number) => {
+    alertEngine.snoozeAlert(id, minutes);
+  });
+
+  ipcMain.handle('pchelper:dismiss-all-alerts', () => {
+    alertEngine.dismissAll();
+  });
+
+  ipcMain.handle('pchelper:get-alert-history', (_event, limit?: number) =>
+    getAlertHistoryFromDb(limit ?? 100)
+  );
+
+  ipcMain.handle('pchelper:run-ai-analysis', async () => {
+    if (!hardwareCollector) return null;
+    const snapshot = hardwareCollector.getSnapshot() as unknown as import('./alerter/engine').HardwareSnapshot;
+    const apiKey = getSetting('ai_api_key') || '';
+    const endpoint = getSetting('ai_endpoint') || 'https://api.deepseek.com';
+    const model = getSetting('ai_model') || 'deepseek-v4-pro';
+    if (!apiKey) return null;
+    const alert = await alertEngine.analyzeWithAI(snapshot, apiKey, endpoint, model);
+    if (alert) {
+      try {
+        saveAlert({
+          timestamp: alert.timestamp,
+          type: alert.type,
+          severity: alert.severity,
+          title: alert.title,
+          message: alert.message,
+          detail: alert.detail,
+        });
+      } catch {
+        // DB may not be available
+      }
+    }
+    return alert;
+  });
+
+  // Health Score
+  ipcMain.handle('pchelper:get-health-score', async () => {
+    const hw = hardwareCollector?.getSnapshot();
+    const alerts = alertEngine.getActiveAlerts();
+    const conflictReport = conflictDetector.scanConflicts();
+    const updateResult = await softwareUpdater.scanForUpdates(softwareCollector.getInstalledApps());
+    const apps = softwareCollector.getInstalledApps();
+
+    const score = calculateHealthScore({
+      cpu: hw ? {
+        usage: hw.cpu.usage,
+        temp: hw.cpu.temp,
+        currentClock: hw.cpu.currentClock,
+        baseClock: hw.cpu.baseClock,
+      } : { usage: 0, temp: 0, currentClock: 0, baseClock: 0 },
+      memory: hw ? { usagePercent: hw.memory.usagePercent } : { usagePercent: 0 },
+      disks: hw ? hw.disks.map((d) => ({ usagePercent: d.usagePercent, temp: d.temp })) : [{ usagePercent: 0, temp: 0 }],
+      gpu: hw ? { temp: hw.gpu.temp, usage: hw.gpu.usage } : { temp: 0, usage: 0 },
+      outdatedApps: updateResult.updatesAvailable,
+      highSeverityConflicts: conflictReport.summary.high,
+      criticalUpdates: updateResult.criticalUpdates,
+      normalUpdates: updateResult.updatesAvailable - updateResult.criticalUpdates,
+      activeCriticalAlerts: alerts.filter((a) => a.severity === 'critical').length,
+      activeWarningAlerts: alerts.filter((a) => a.severity === 'warning').length,
+    });
+
+    try {
+      saveHealthScore({
+        total: score.total,
+        grade: score.grade,
+        categories: score.categories,
+      });
+    } catch {
+      // DB may not be available
+    }
+
+    return score;
+  });
+
+  ipcMain.handle('pchelper:get-health-history', (_event, limit?: number) =>
+    getHealthHistoryFromDb(limit ?? 24)
+  );
 
   // External links
   ipcMain.handle('pchelper:open-external', (_event, url: string) => {

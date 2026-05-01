@@ -1,19 +1,29 @@
+import { useEffect } from 'react';
 import {
   LayoutDashboard,
   Cpu,
   Monitor,
   AppWindow,
+  AlertTriangle,
+  Bell,
+  Heart,
   MessageSquare,
   Settings,
+  RefreshCw,
   ChevronRight,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
+import { useConflictStore } from '../../stores/conflictStore';
+import { useUpdateStore } from '../../stores/updateStore';
+import { useAlertStore } from '../../stores/alertStore';
+import { useHealthStore } from '../../stores/healthStore';
 import type { NavPage } from '../../utils/types';
 
 interface NavItem {
   id: NavPage;
   label: string;
   icon: React.ComponentType<{ size?: number }>;
+  badge?: number;
 }
 
 const navItems: NavItem[] = [
@@ -21,6 +31,10 @@ const navItems: NavItem[] = [
   { id: 'hardware', label: 'Hardware', icon: Cpu },
   { id: 'software', label: 'Software', icon: Monitor },
   { id: 'apps', label: 'Apps', icon: AppWindow },
+  { id: 'conflicts', label: 'Conflicts', icon: AlertTriangle },
+  { id: 'updates', label: 'Updates', icon: RefreshCw },
+  { id: 'alerts', label: 'Alerts', icon: Bell },
+  { id: 'health', label: 'Health', icon: Heart },
   { id: 'ai', label: 'AI Chat', icon: MessageSquare },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
@@ -28,6 +42,23 @@ const navItems: NavItem[] = [
 export default function Sidebar() {
   const currentPage = useAppStore((s) => s.currentPage);
   const setPage = useAppStore((s) => s.setPage);
+  const highCount = useConflictStore((s) => s.report?.summary.high ?? 0);
+  const updatesCount = useUpdateStore((s) => s.scanResult?.updatesAvailable ?? 0);
+  const alertCount = useAlertStore((s) => s.activeAlerts.length);
+  const criticalAlertCount = useAlertStore((s) => s.activeAlerts.filter((a) => a.severity === 'critical').length);
+  const healthScore = useHealthStore((s) => s.score?.total);
+  const healthGrade = useHealthStore((s) => s.score?.grade);
+  const scanConflicts = useConflictStore((s) => s.scanConflicts);
+  const scanForUpdates = useUpdateStore((s) => s.scanForUpdates);
+  const fetchAlerts = useAlertStore((s) => s.fetchAlerts);
+  const fetchHealthScore = useHealthStore((s) => s.fetchScore);
+
+  useEffect(() => {
+    scanConflicts();
+    scanForUpdates();
+    fetchAlerts();
+    fetchHealthScore();
+  }, [scanConflicts, scanForUpdates, fetchAlerts, fetchHealthScore]);
 
   return (
     <div className="sidebar">
@@ -105,6 +136,87 @@ export default function Sidebar() {
               >
                 <Icon size={18} />
                 <span style={{ flex: 1 }}>{item.label}</span>
+                {item.id === 'conflicts' && highCount > 0 && (
+                  <span
+                    style={{
+                      background: 'var(--red)',
+                      color: '#fff',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      minWidth: 18,
+                      height: 18,
+                      borderRadius: 9,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 5px',
+                    }}
+                  >
+                    {highCount}
+                  </span>
+                )}
+                {item.id === 'updates' && updatesCount > 0 && (
+                  <span
+                    style={{
+                      background: 'var(--yellow)',
+                      color: '#000',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      minWidth: 18,
+                      height: 18,
+                      borderRadius: 9,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 5px',
+                    }}
+                  >
+                    {updatesCount}
+                  </span>
+                )}
+                {item.id === 'alerts' && criticalAlertCount > 0 && (
+                  <span
+                    style={{
+                      background: 'var(--red)',
+                      color: '#fff',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      minWidth: 18,
+                      height: 18,
+                      borderRadius: 9,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 5px',
+                    }}
+                  >
+                    {criticalAlertCount}
+                  </span>
+                )}
+                {item.id === 'health' && healthScore !== undefined && (
+                  <span
+                    style={{
+                      background:
+                        healthScore >= 85 ? 'var(--green)' :
+                        healthScore >= 70 ? 'var(--accent)' :
+                        healthScore >= 50 ? 'var(--yellow)' :
+                        healthScore >= 30 ? 'var(--orange)' :
+                        'var(--red)',
+                      color: healthScore >= 50 ? '#000' : '#fff',
+                      fontSize: 10,
+                      fontWeight: 700,
+                      minWidth: 18,
+                      height: 18,
+                      borderRadius: 9,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0 5px',
+                    }}
+                  >
+                    {healthScore}
+                  </span>
+                )}
                 {isActive && <ChevronRight size={14} />}
               </button>
             );

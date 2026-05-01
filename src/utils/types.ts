@@ -73,7 +73,112 @@ export interface ChatMessage {
   content: string;
 }
 
-export type NavPage = 'dashboard' | 'hardware' | 'software' | 'apps' | 'ai' | 'settings';
+export type ConflictType = 'install_conflict' | 'residual_files' | 'residual_registry' | 'process_conflict';
+export type ConflictSeverity = 'low' | 'medium' | 'high';
+
+export interface ConflictItem {
+  id: string;
+  type: ConflictType;
+  severity: ConflictSeverity;
+  title: string;
+  description: string;
+  details: string[];
+  resolution: string;
+}
+
+export interface ConflictReport {
+  timestamp: number;
+  conflicts: ConflictItem[];
+  summary: {
+    total: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
+}
+
+export interface AppEntry {
+  name: string;
+  version: string;
+  publisher: string;
+  installDate: string;
+  size: number; // MB
+  installPath: string;
+  uninstallString: string;
+  isSelected: boolean;
+  category?: string;
+  description?: string;
+  dependencies?: string[];
+}
+
+export interface UninstallResult {
+  success: number;
+  failed: number;
+  errors: string[];
+}
+
+export interface UpdateInfo {
+  appName: string;
+  currentVersion: string;
+  latestVersion: string;
+  publisher: string;
+  releaseDate: string;
+  changelog: string;
+  downloadUrl: string;
+  isCritical: boolean;
+}
+
+export interface UpdateScanResult {
+  timestamp: number;
+  totalApps: number;
+  updatesAvailable: number;
+  criticalUpdates: number;
+  updates: UpdateInfo[];
+}
+
+export type AlertType = 'local_rule' | 'ai_analysis';
+export type AlertSeverity = 'info' | 'warning' | 'critical';
+
+export interface Alert {
+  id: string;
+  type: AlertType;
+  severity: AlertSeverity;
+  title: string;
+  message: string;
+  detail: string;
+  timestamp: number;
+  dismissed: boolean;
+  autoResolve: boolean;
+  sourceMetric?: string;
+  currentValue?: number;
+  threshold?: number;
+}
+
+export type NavPage = 'dashboard' | 'hardware' | 'software' | 'apps' | 'conflicts' | 'updates' | 'alerts' | 'health' | 'ai' | 'settings';
+
+export interface HealthCategory {
+  score: number;
+  maxScore: number;
+  details: string[];
+}
+
+export type HealthGrade = 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Critical';
+
+export interface HealthScore {
+  total: number;
+  grade: HealthGrade;
+  categories: {
+    cpu: HealthCategory;
+    memory: HealthCategory;
+    disk: HealthCategory;
+    gpu: HealthCategory;
+    software: HealthCategory;
+    updates: HealthCategory;
+    alerts: HealthCategory;
+  };
+  recommendations: string[];
+  timestamp: number;
+}
 
 export interface AppSettings {
   ai_endpoint: string;
