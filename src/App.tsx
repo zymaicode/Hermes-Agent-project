@@ -41,6 +41,7 @@ import MemoryView from './components/MemoryView';
 import FeaturesView from './components/FeaturesView';
 import SoundView from './components/SoundView';
 import FontView from './components/FontView';
+import RepairCenter from './components/RepairCenter';
 import TitleBar from './components/TitleBar';
 import { useAppStore } from './stores/appStore';
 import { useHardwareStore } from './stores/hardwareStore';
@@ -51,6 +52,8 @@ function MainContent() {
   switch (currentPage) {
     case 'dashboard':
       return <Dashboard />;
+    case 'repair':
+      return <RepairCenter />;
     case 'hardware':
       return <HardwareView />;
     case 'software':

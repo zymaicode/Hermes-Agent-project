@@ -298,6 +298,77 @@ declare global {
       }) | null>;
       getFontsGrouped: () => Promise<Record<string, FontEntry[]>>;
       getRecentFonts: () => Promise<string[]>;
+
+      // Repair
+      startRepairScan: (onProgress: (progress: { phase: string; pct: number; category?: string; issuesFound: number }) => void) => Promise<{
+        issues: Array<{
+          id: string;
+          category: string;
+          severity: 'critical' | 'warning' | 'info';
+          title: string;
+          description: string;
+          details: string;
+          evidence: string[];
+          canAutoFix: boolean;
+          autoFixDescription: string;
+          canGuideFix: boolean;
+          requiresAdmin: boolean;
+          fixId: string;
+          rollbackPlan: string;
+        }>;
+        systemInfo: { os: string; uptime: string; lastBoot: string; pendingUpdate: boolean; adminAccess: boolean };
+        scanDuration: number;
+      }>;
+      getRepairDetail: (issueId: string) => Promise<unknown>;
+      executeRepairFix: (issueId: string, createRestorePoint: boolean) => Promise<{
+        success: boolean;
+        message: string;
+        requiresRestart: boolean;
+        rollbackSteps?: string[];
+        performedActions: string[];
+        duration: number;
+        error?: string;
+      }>;
+      undoRepairFix: () => Promise<{ success: boolean; message: string }>;
+      aiDiagnoseIssues: (issues: unknown[], systemInfo: unknown) => Promise<{
+        analysis: string;
+        likelyRootCause: string;
+        recommendedFix: Array<{ steps: string[]; priority: number; confidence: number; explanation: string }>;
+        followUpQuestions: string[];
+      }>;
+      aiRepairChat: (message: string, context: { issues: unknown[]; history: Array<{ role: string; content: string }> }) => Promise<{
+        reply: string;
+        suggestedFixes?: string[];
+      }>;
+      analyzeBluescreen: () => Promise<{
+        dumpFiles: Array<{ path: string; timestamp: string; sizeKB: number }>;
+        eventLogEntries: Array<{ id: number; timestamp: string; message: string }>;
+        possibleCauses: string[];
+        stopCode: string | null;
+        affectedDriver: string | null;
+        recommendations: string[];
+      }>;
+      getRepairHistory: () => Promise<Array<{
+        id: number;
+        timestamp: string;
+        issueId: string;
+        issueTitle: string;
+        category: string;
+        severity: string;
+        fixAction: string;
+        fixResult: 'success' | 'failed' | 'partial';
+        details: string;
+        userApproved: boolean;
+        requiresRestart: boolean;
+        restartPerformed: boolean;
+        rollbackAvailable: boolean;
+        duration: number;
+        adminElevated: boolean;
+      }>>;
+      repairCreateRestorePoint: (description: string) => Promise<{ success: boolean; message: string }>;
+      elevateRepairPrivileges: () => Promise<{ success: boolean }>;
+      runSfcScan: () => Promise<{ success: boolean; foundCorruption: boolean; repairedFiles: number; logPath: string; details: string[]; duration: number }>;
+      runDismRestore: () => Promise<{ success: boolean; stage: string; progress: number; details: string[]; duration: number }>;
     };
   }
 }

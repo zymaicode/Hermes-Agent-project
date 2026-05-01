@@ -37,6 +37,10 @@ import { MemoryAnalyzer } from './memory/analyzer';
 import { WindowsFeaturesManager } from './features/manager';
 import { SoundManager } from './sounds/manager';
 import { FontManager } from './fonts/manager';
+import { RepairEngine } from './repair/engine';
+import { RepairAiAssistant } from './repair/ai';
+import { BluescreenAnalyzer } from './repair/bluescreen';
+import { runSfcScan, runDismRestore } from './repair/sfc';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -75,6 +79,8 @@ const memoryAnalyzer = new MemoryAnalyzer();
 const windowsFeaturesManager = new WindowsFeaturesManager();
 const soundManager = new SoundManager();
 const fontManager = new FontManager();
+const repairEngine = new RepairEngine();
+const bluescreenAnalyzer = new BluescreenAnalyzer();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -983,6 +989,87 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('pchelper:get-recent-fonts', () =>
     fontManager.getRecentFonts()
+  );
+
+  // Repair: Start scan
+  ipcMain.handle('pchelper:repair-start-scan', async () => {
+    return repairEngine.startScan((progress) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('pchelper:repair-scan-progress', progress);
+      }
+    });
+  });
+
+  // Repair: Get issue detail
+  ipcMain.handle('pchelper:repair-get-detail', (_event, issueId: string) =>
+    repairEngine.getIssueById(issueId)
+  );
+
+  // Repair: Execute fix
+  ipcMain.handle('pchelper:repair-execute-fix', async (_event, issueId: string, createRestorePoint: boolean) =>
+    repairEngine.executeFix(issueId, createRestorePoint)
+  );
+
+  // Repair: Undo fix
+  ipcMain.handle('pchelper:repair-undo-fix', async () =>
+    repairEngine.undoLastFix()
+  );
+
+  // Repair: AI diagnose
+  ipcMain.handle('pchelper:repair-ai-diagnose', async (_event, issues: unknown[], systemInfo: unknown) => {
+    const apiKey = getSetting('ai_api_key') || '';
+    const endpoint = getSetting('ai_endpoint') || 'https://api.deepseek.com';
+    const model = getSetting('ai_model') || 'deepseek-v4-pro';
+    const assistant = new RepairAiAssistant(endpoint, model, apiKey);
+    return assistant.diagnoseIssues(
+      issues as import('./repair/engine').DetectedIssue[],
+      systemInfo as Record<string, unknown>,
+    );
+  });
+
+  // Repair: AI chat
+  ipcMain.handle('pchelper:repair-ai-chat', async (_event, message: string, context: {
+    issues: import('./repair/engine').DetectedIssue[];
+    history: Array<{ role: string; content: string }>;
+  }) => {
+    const apiKey = getSetting('ai_api_key') || '';
+    const endpoint = getSetting('ai_endpoint') || 'https://api.deepseek.com';
+    const model = getSetting('ai_model') || 'deepseek-v4-pro';
+    const assistant = new RepairAiAssistant(endpoint, model, apiKey);
+    return assistant.chatDiagnose(message, {
+      issues: context.issues,
+      history: context.history as import('./repair/ai').AiChatMessage[],
+    });
+  });
+
+  // Repair: Bluescreen analysis
+  ipcMain.handle('pchelper:repair-analyze-bluescreen', () =>
+    bluescreenAnalyzer.scanMinidumps()
+  );
+
+  // Repair: History
+  ipcMain.handle('pchelper:repair-get-history', () =>
+    repairEngine.getRepairHistory()
+  );
+
+  // Repair: Create restore point
+  ipcMain.handle('pchelper:repair-create-restore-point', async (_event, description: string) =>
+    repairEngine.createSystemRestorePoint(description)
+  );
+
+  // Repair: Elevate privileges (simulated)
+  ipcMain.handle('pchelper:repair-elevate', () =>
+    ({ success: true })
+  );
+
+  // Repair: SFC scan
+  ipcMain.handle('pchelper:repair-run-sfc', async () =>
+    runSfcScan()
+  );
+
+  // Repair: DISM restore
+  ipcMain.handle('pchelper:repair-run-dism', async () =>
+    runDismRestore()
   );
 
   // Settings management

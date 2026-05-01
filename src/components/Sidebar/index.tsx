@@ -12,6 +12,7 @@ import {
   RefreshCw,
   ChevronRight,
   Zap,
+  Wrench,
   Wifi,
   Thermometer,
   Activity,
@@ -55,6 +56,7 @@ const navSections: { heading: string; items: NavItem[] }[] = [
     heading: 'Monitoring',
     items: [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'repair', label: 'Repair', icon: Wrench },
       { id: 'hardware', label: 'Hardware', icon: Cpu },
       { id: 'memory', label: 'Memory', icon: MemoryStick },
       { id: 'software', label: 'Software', icon: Monitor },

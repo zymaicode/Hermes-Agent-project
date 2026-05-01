@@ -306,4 +306,29 @@ contextBridge.exposeInMainWorld('pchelper', {
   getFontDetail: (name: string) => ipcRenderer.invoke('pchelper:get-font-detail', name),
   getFontsGrouped: () => ipcRenderer.invoke('pchelper:get-fonts-grouped'),
   getRecentFonts: () => ipcRenderer.invoke('pchelper:get-recent-fonts'),
+
+  // Repair
+  startRepairScan: (onProgress: (progress: { phase: string; pct: number; category?: string; issuesFound: number }) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { phase: string; pct: number; category?: string; issuesFound: number }) =>
+      onProgress(data);
+    ipcRenderer.on('pchelper:repair-scan-progress', handler);
+    return ipcRenderer.invoke('pchelper:repair-start-scan').finally(() => {
+      ipcRenderer.removeListener('pchelper:repair-scan-progress', handler);
+    });
+  },
+  getRepairDetail: (issueId: string) => ipcRenderer.invoke('pchelper:repair-get-detail', issueId),
+  executeRepairFix: (issueId: string, createRestorePoint: boolean) =>
+    ipcRenderer.invoke('pchelper:repair-execute-fix', issueId, createRestorePoint),
+  undoRepairFix: () => ipcRenderer.invoke('pchelper:repair-undo-fix'),
+  aiDiagnoseIssues: (issues: unknown[], systemInfo: unknown) =>
+    ipcRenderer.invoke('pchelper:repair-ai-diagnose', issues, systemInfo),
+  aiRepairChat: (message: string, context: { issues: unknown[]; history: Array<{ role: string; content: string }> }) =>
+    ipcRenderer.invoke('pchelper:repair-ai-chat', message, context),
+  analyzeBluescreen: () => ipcRenderer.invoke('pchelper:repair-analyze-bluescreen'),
+  getRepairHistory: () => ipcRenderer.invoke('pchelper:repair-get-history'),
+  repairCreateRestorePoint: (description: string) =>
+    ipcRenderer.invoke('pchelper:repair-create-restore-point', description),
+  elevateRepairPrivileges: () => ipcRenderer.invoke('pchelper:repair-elevate'),
+  runSfcScan: () => ipcRenderer.invoke('pchelper:repair-run-sfc'),
+  runDismRestore: () => ipcRenderer.invoke('pchelper:repair-run-dism'),
 });
