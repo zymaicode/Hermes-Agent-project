@@ -23,6 +23,11 @@ import UsbView from './components/UsbView';
 import DiskCleanupView from './components/DiskCleanupView';
 import SecurityView from './components/SecurityView';
 import ClipboardView from './components/ClipboardView';
+import DriversView from './components/DriversView';
+import ServicesView from './components/ServicesView';
+import EventLogView from './components/EventLogView';
+import BatteryView from './components/BatteryView';
+import PerfLogView from './components/PerfLogView';
 import TitleBar from './components/TitleBar';
 import { useAppStore } from './stores/appStore';
 import { useHardwareStore } from './stores/hardwareStore';
@@ -75,6 +80,16 @@ function MainContent() {
       return <SecurityView />;
     case 'clipboard':
       return <ClipboardView />;
+    case 'drivers':
+      return <DriversView />;
+    case 'services':
+      return <ServicesView />;
+    case 'eventlog':
+      return <EventLogView />;
+    case 'battery':
+      return <BatteryView />;
+    case 'perflog':
+      return <PerfLogView />;
     default:
       return <Dashboard />;
   }

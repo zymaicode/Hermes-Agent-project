@@ -4,6 +4,11 @@ import type { UsbDevice, UsbHistoryEntry } from '../../electron/usb/manager';
 import type { DiskCategory, LargeFile, TempFileCategory } from '../../electron/disk/analyzer';
 import type { SecurityStatus } from '../../electron/security/center';
 import type { ClipboardEntry } from '../../electron/clipboard/history';
+import type { DriverEntry, DriverDetail } from '../../electron/drivers/manager';
+import type { ServiceEntry, ServiceDetail } from '../../electron/services/manager';
+import type { EventLogEntry } from '../../electron/events/reader';
+import type { BatteryStatus, BatteryHistoryPoint } from '../../electron/battery/reporter';
+import type { PerfLogSession, PerfLogEntry } from '../../electron/perflog/recorder';
 
 export {};
 
@@ -133,6 +138,37 @@ declare global {
       clearClipboardHistory: () => Promise<void>;
       removeClipboardEntry: (id: string) => Promise<void>;
       toggleClipboardPin: (id: string) => Promise<void>;
+
+      // Drivers
+      getDrivers: () => Promise<DriverEntry[]>;
+      getDriverDetails: (name: string) => Promise<DriverDetail | null>;
+      getProblemDrivers: () => Promise<DriverEntry[]>;
+
+      // Services
+      getServices: () => Promise<ServiceEntry[]>;
+      startService: (name: string) => Promise<{ success: boolean; message: string }>;
+      stopService: (name: string) => Promise<{ success: boolean; message: string }>;
+      restartService: (name: string) => Promise<{ success: boolean; message: string }>;
+      setServiceStartup: (name: string, type: ServiceEntry['startupType']) => Promise<{ success: boolean; message: string }>;
+      getServiceDetails: (name: string) => Promise<ServiceDetail | null>;
+
+      // Event Log
+      getEvents: (logName?: string, level?: string, limit?: number, search?: string) => Promise<EventLogEntry[]>;
+      getEventLogs: () => Promise<string[]>;
+      getEventCounts: () => Promise<Record<string, Record<string, number>>>;
+
+      // Battery
+      getBatteryStatus: () => Promise<BatteryStatus>;
+      getBatteryHistory: (hours?: number) => Promise<BatteryHistoryPoint[]>;
+      getBatteryReport: () => Promise<{ design: number; actual: number; wear: number; cycles: number; estimatedLife: number }>;
+
+      // Perf Log
+      getPerfLogSessions: () => Promise<PerfLogSession[]>;
+      startPerfRecording: (name: string) => Promise<PerfLogSession>;
+      stopPerfRecording: () => Promise<PerfLogSession | null>;
+      getPerfSessionData: (sessionId: string) => Promise<PerfLogEntry[]>;
+      deletePerfSession: (sessionId: string) => Promise<void>;
+      getActiveSession: () => Promise<PerfLogSession | null>;
     };
   }
 }

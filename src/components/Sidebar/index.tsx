@@ -22,6 +22,10 @@ import {
   Trash2,
   ShieldCheck,
   ClipboardList,
+  Server,
+  ScrollText,
+  Battery,
+  LineChart,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { useConflictStore } from '../../stores/conflictStore';
@@ -58,6 +62,11 @@ const navItems: NavItem[] = [
   { id: 'diskcleanup', label: 'Disk Cleanup', icon: Trash2 },
   { id: 'security', label: 'Security', icon: ShieldCheck },
   { id: 'clipboard', label: 'Clipboard', icon: ClipboardList },
+  { id: 'drivers', label: 'Drivers', icon: Cpu },
+  { id: 'services', label: 'Services', icon: Server },
+  { id: 'eventlog', label: 'Event Log', icon: ScrollText },
+  { id: 'battery', label: 'Battery', icon: Battery },
+  { id: 'perflog', label: 'Perf Log', icon: LineChart },
   { id: 'ai', label: 'AI Chat', icon: MessageSquare },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];

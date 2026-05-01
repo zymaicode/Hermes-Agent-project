@@ -1,0 +1,378 @@
+## PCHelper — Phase 6: Drivers, Services, Event Log, Battery Report, Performance Log
+
+Current project: 74 files, 13,278 lines, zero TS errors. 22 nav items. Dark theme.
+
+### Task 1: Driver Manager (`electron/drivers/manager.ts` + `src/components/DriversView/index.tsx` + store)
+
+Backend (`electron/drivers/manager.ts`):
+```typescript
+export interface DriverEntry {
+  name: string;
+  provider: string;
+  version: string;
+  date: string;
+  status: 'running' | 'stopped' | 'error';
+  type: 'kernel' | 'file_system' | 'filter' | 'display' | 'network' | 'audio' | 'usb' | 'other';
+  deviceName: string;
+  deviceClass: string;
+  infFile: string;
+  signed: boolean;
+  baseAddress: string;
+  sizeKB: number;
+}
+
+export class DriverManager {
+  getDrivers(): DriverEntry[] {
+    // Simulate: 40+ realistic Windows drivers
+    // Kernel: ntoskrnl, hal, ksecdd, tcpip, ndis, etc.
+    // Display: nvidia/amd/intel GPU drivers
+    // Network: Realtek, Intel, Qualcomm WiFi drivers
+    // Audio: Realtek HD Audio, NVIDIA HDMI Audio
+    // USB: xhci, usbhub, usbstor, hidusb, etc.
+    // File system: ntfs, fastfat, exfat
+    // Mix of running/stopped, all signed, varied dates
+  }
+
+  getDriverDetails(name: string): DriverEntry & { 
+    dependencies: string[]; 
+    dependentDrivers: string[];
+    pnpId: string;
+    hardwareIds: string[];
+    registryPath: string;
+  } {
+    // Return detailed info for selected driver
+  }
+
+  getProblemDrivers(): DriverEntry[] {
+    // Return drivers with error status (simulate 1-2)
+  }
+}
+```
+
+IPC: `pchelper:get-drivers`, `pchelper:get-driver-details`, `pchelper:get-problem-drivers`
+
+UI (`src/components/DriversView/index.tsx`):
+- **Summary bar**: total drivers, running count, stopped count, problem drivers count (red badge)
+- **Filter row**: search + type dropdown + status dropdown + "Problem Drivers Only" toggle
+- **Table**: Name, Provider, Version, Date, Status (green/gray/red dot), Type (badge), Signed (checkmark/X)
+  - Sortable by name, provider, version, date
+  - Row hover: slight highlight
+  - Click row to expand detail panel
+- **Detail panel**: full info grid (2 columns)
+  - Device, Class, INF file, Base Address, Size
+  - Dependencies list, Dependent drivers list
+  - Hardware IDs, PnP ID
+  - Registry path (monospace, truncated)
+- **Problem drivers** section at top (collapsible) when problems exist: highlighted cards with error driver info
+
+### Task 2: Services Manager (`electron/services/manager.ts` + `src/components/ServicesView/index.tsx` + store)
+
+Backend (`electron/services/manager.ts`):
+```typescript
+export interface ServiceEntry {
+  name: string;
+  displayName: string;
+  description: string;
+  status: 'running' | 'stopped' | 'paused' | 'starting' | 'stopping';
+  startupType: 'automatic' | 'automatic_delayed' | 'manual' | 'disabled';
+  logOnAs: string; // "LocalSystem", "NetworkService", "LocalService", or custom user
+  pid: number;
+  processName: string;
+  serviceType: 'win32_own_process' | 'win32_share_process' | 'kernel_driver' | 'file_system_driver';
+  dependencies: string[];
+  dependentServices: string[];
+  path: string; // path to executable
+  startTime: string | null;
+  restartCount: number;
+  isCritical: boolean; // system-critical services
+}
+
+export class ServiceManager {
+  getServices(): ServiceEntry[] {
+    // Simulate: 50+ realistic Windows services
+    // Critical: RpcSs, DcomLaunch, PlugPlay, Power, EventLog, etc.
+    // Common: WSearch, Spooler, Themes, WlanSvc, BITS, etc.
+    // Third-party: Nvidia Display, Realtek Audio, Docker, etc.
+    // Mix: 30 running / 15 stopped / some disabled / 1-2 paused
+    // Mix of startup types: automatic, delayed, manual, disabled
+  }
+
+  startService(name: string): { success: boolean; message: string } { }
+  stopService(name: string): { success: boolean; message: string } { }
+  restartService(name: string): { success: boolean; message: string } { }
+  setStartupType(name: string, type: ServiceEntry['startupType']): { success: boolean; message: string } { }
+  
+  getServiceDetails(name: string): ServiceEntry & {
+    group: string;
+    tagId: number;
+    flags: string[];
+    requiredPrivileges: string[];
+    registryPath: string;
+  } { }
+}
+```
+
+IPC: `pchelper:get-services`, `pchelper:start-service`, `pchelper:stop-service`, `pchelper:restart-service`, `pchelper:set-service-startup`, `pchelper:get-service-details`
+
+UI (`src/components/ServicesView/index.tsx`):
+- **Summary bar**: total services, running, stopped, paused (with color dots)
+- **Filter row**: search + status filter + startup type filter + "Critical Only" toggle + "Third-party Only" toggle
+- **Table**: Display Name, Status (colored dot + text), Startup Type, Log On As, PID, Process
+  - Sortable columns
+  - Row click → expand detail
+- **Action buttons** (appear when service selected): Start (green), Stop (red), Restart (yellow), Startup Type dropdown
+  - Confirm dialog for Stop/Restart, warning for system-critical services: "This is a critical system service. Stopping it may cause system instability."
+- **Detail panel** (expanded): 
+  - Full info grid
+  - Dependencies (with links to those services)
+  - Dependent services list
+  - Path (monospace), Group, Tag
+  - Registry path
+- **Status animation**: Starting/Stopping with spinner during transitions
+
+### Task 3: Event Log Viewer (`electron/events/reader.ts` + `src/components/EventLogView/index.tsx` + store)
+
+Backend (`electron/events/reader.ts`):
+```typescript
+export interface EventLogEntry {
+  id: number;
+  logName: string; // "System", "Application", "Security", "Setup"
+  level: 'critical' | 'error' | 'warning' | 'information' | 'verbose';
+  source: string; // e.g., "Service Control Manager", "DCOM", "DistributedCOM", "EventLog", "Winlogon"
+  eventId: number;
+  taskCategory: string;
+  user: string;
+  computer: string;
+  timeCreated: string;
+  message: string;
+  details: Record<string, string>; // key-value pairs with event-specific data
+  xml: string; // raw event XML
+}
+
+export class EventLogReader {
+  getEvents(logName?: string, level?: string, limit?: number, search?: string): EventLogEntry[] {
+    // Simulate: 50+ realistic Windows event log entries
+    // Mix across System/Application/Security logs
+    // Mix of levels (mostly info/warning, some errors)
+    // Realistic sources and event IDs
+    // Time range: last 24 hours
+    // Message content should be realistic Windows event descriptions
+  }
+
+  getLogNames(): string[] {
+    return ['System', 'Application', 'Security', 'Setup'];
+  }
+
+  getEventCounts(): Record<string, Record<string, number>> {
+    // Return counts per log per level
+  }
+}
+```
+
+IPC: `pchelper:get-events`, `pchelper:get-event-logs`, `pchelper:get-event-counts`
+
+UI (`src/components/EventLogView/index.tsx`):
+- **Stats row**: summary cards per log (System: 20 events, Application: 15, Security: 10, Setup: 5)
+  - Each card shows: log name, error count (red), warning count (yellow), info count (blue)
+- **Controls row**: log selector dropdown, level filter (checkboxes: Critical/Error/Warning/Info), search input, refresh button
+- **Event list**: compact table with:
+  - Level icon (red X=critical/error, yellow triangle=warning, blue i=info)
+  - Time (relative: "2m ago", "1h ago", absolute if older)
+  - Source
+  - Event ID
+  - Message (truncated to 1 line, expand on click)
+  - Row click → expand full details panel below
+- **Detail panel** (expanded):
+  - Full message text
+  - Details table (key-value pairs from the event)
+  - Log name, User, Computer, Task Category
+  - Raw XML (collapsible, monospace)
+  - "Copy to Clipboard" button
+- **Auto-refresh**: toggle on/off, interval 10s
+- Filtering: apply all filters simultaneously
+- Loading state with "Loading events..." spinner
+
+### Task 4: Battery Report (`electron/battery/reporter.ts` + `src/components/BatteryView/index.tsx` + store)
+
+Backend (`electron/battery/reporter.ts`):
+```typescript
+export interface BatteryStatus {
+  acConnected: boolean;
+  chargePercent: number;
+  chargeRate: number; // mW, positive=charging, negative=discharging
+  dischargeRate: number; // mW
+  voltage: number; // mV
+  capacity: {
+    design: number; // mWh
+    fullCharge: number; // mWh
+    current: number; // mWh
+    wearLevel: number; // percentage (e.g., 12% = 12% worn)
+  };
+  estimatedRemaining: string; // "2h 34m"
+  estimatedFullCharge: string | null; // null if not charging
+  cycleCount: number;
+  temperature: number; // Celsius
+  chemistry: string; // "Li-ion", "Li-Po"
+  manufacturer: string;
+  serialNumber: string;
+  manufactureDate: string;
+  health: 'excellent' | 'good' | 'fair' | 'poor';
+}
+
+export interface BatteryHistoryPoint {
+  timestamp: number;
+  chargePercent: number;
+  capacity: number; // mWh
+  dischargeRate: number;
+}
+
+export class BatteryReporter {
+  getBatteryStatus(): BatteryStatus {
+    // If no battery (desktop): return specific "no battery" state
+    // Simulate: laptop with Li-Po battery, 78% charge, AC connected
+    // Design=50000, Full=44200, Current=34600 → 12% wear
+    // 68 cycles, 2h34m remaining, temp 31°C
+  }
+
+  getBatteryHistory(hours?: number): BatteryHistoryPoint[] {
+    // Simulate: 12 hours of battery data, one point per 30min
+    // Show charge/discharge cycles
+  }
+
+  getBatteryReport(): { design: number; actual: number; wear: number; cycles: number; estimatedLife: number } {
+    // Comprehensive battery report
+  }
+}
+```
+
+IPC: `pchelper:get-battery-status`, `pchelper:get-battery-history`, `pchelper:get-battery-report`
+
+UI (`src/components/BatteryView/index.tsx`):
+- **If no battery**: show message "No battery detected — desktop system" with plug icon
+- **Main battery card** (prominent):
+  - Large charge percent (78%) with animated circular gauge (color: green >60%, yellow 20-60%, red <20%)
+  - Status: "Charging" / "Discharging" / "Fully Charged" with appropriate icon
+  - Estimated remaining: "2h 34m" (or "∞" if fully charged)
+- **Capacity section**: 
+  - Design capacity / Full charge capacity / Current capacity bars (side by side)
+  - Wear level: "12% worn (4,400 mWh lost)" with color bar
+  - Cycle count
+- **Detailed stats** (grid):
+  - Voltage, Temperature, Charge/Discharge Rate
+  - Chemistry, Manufacturer, Serial, Manufacture date
+  - Health badge (color-coded)
+- **History chart** (Recharts area chart): 12-hour charge level trend
+  - Show charge/discharge cycles as colored areas
+- **Battery report** section (collapsible): summary of battery health over time
+
+### Task 5: Performance Log Recorder (`electron/perflog/recorder.ts` + `src/components/PerfLogView/index.tsx` + store)
+
+Backend (`electron/perflog/recorder.ts`):
+```typescript
+export interface PerfLogEntry {
+  timestamp: number;
+  cpu: { usage: number; temp: number; clock: number };
+  memory: { used: number; available: number; percent: number };
+  disk: { readMbps: number; writeMbps: number; activeTime: number };
+  gpu: { usage: number; temp: number; vramUsed: number };
+  network: { download: number; upload: number };
+}
+
+export interface PerfLogSession {
+  id: string;
+  name: string;
+  startTime: number;
+  endTime: number | null;
+  duration: string;
+  entries: number;
+  status: 'recording' | 'completed' | 'stopped';
+  summary: {
+    avgCpu: number;
+    maxCpu: number;
+    avgMem: number;
+    maxMem: number;
+    avgDiskRead: number;
+    avgDiskWrite: number;
+    avgGpu: number;
+    maxGpu: number;
+    avgNetDownload: number;
+    avgNetUpload: number;
+    maxTemp: number;
+    minFps?: number; // simulated
+  };
+}
+
+export class PerfLogRecorder {
+  private sessions: PerfLogSession[] = [];
+  private activeSession: PerfLogSession | null = null;
+  private interval: ReturnType<typeof setInterval> | null = null;
+  private fakeDataIndex = 0;
+
+  getSessions(): PerfLogSession[] {
+    // Simulate: 3-4 past recording sessions with realistic data
+    // Session examples: "Gaming Session", "Build Benchmark", "Idle Monitoring"
+  }
+
+  startRecording(name: string): PerfLogSession {
+    // Start recording performance data every 5 seconds
+  }
+
+  stopRecording(): PerfLogSession | null {
+    // Stop and save session with computed summary
+  }
+
+  getActiveSession(): PerfLogSession | null {
+    return this.activeSession;
+  }
+
+  getSessionData(sessionId: string): PerfLogEntry[] {
+    // Return detailed data series for a session (for chart display)
+    // Simulate: 50-200 data points depending on session duration
+  }
+
+  deleteSession(sessionId: string): void { }
+}
+```
+
+IPC: `pchelper:get-perf-log-sessions`, `pchelper:start-perf-recording`, `pchelper:stop-perf-recording`, `pchelper:get-perf-session-data`, `pchelper:delete-perf-session`, `pchelper:get-active-session`
+
+Add to preload + global.d.ts
+
+UI (`src/components/PerfLogView/index.tsx`):
+- **Recording controls** at top:
+  - If not recording: "Session Name" input + "Start Recording" button (green, with Record icon)
+  - If recording: pulsing red dot "Recording..." + elapsed time + "Stop Recording" button (red)
+  - Recording indicator: animate red dot + time counter
+- **Active session** (if recording): 
+  - Real-time mini charts (CPU, memory, disk, GPU, network) updating every 5s
+  - Elapsed time counter
+  - Pulsing red indicator
+- **Past sessions** list (card-based):
+  - Each session card: name, date, duration, entries count, summary stats grid
+  - Color-coded by status (green=completed, yellow=stopped)
+  - Click to view details / Expand
+  - Delete button (with confirm)
+- **Session detail** (expanded card):
+  - Summary metrics at top (avg/max per category)
+  - Charts section: 
+    - CPU Usage + Temp combo chart
+    - Memory usage area chart
+    - Disk activity (read/write) dual line chart
+    - GPU usage + vram area chart
+    - Network download/upload dual line
+  - Each chart has tooltips with exact values on hover
+  - "Export as CSV" button
+- **Auto-refresh**: when recording, UI auto-refreshes every 5s
+
+### NavPage additions: 'drivers' | 'services' | 'eventlog' | 'battery' | 'perflog'
+New icons: Cpu (drivers), Server (services), ScrollText (eventlog), Battery (battery), LineChart (perflog)
+
+### IMPORTANT RULES:
+1. After ALL changes: `npx tsc --noEmit` (zero errors required)
+2. npm install already done, do NOT re-run it
+3. Do NOT modify existing working code unless necessary for integration
+4. Keep the dark theme consistent
+5. Sidebar: add new items after Clipboard, before AI Chat
+6. App.tsx: 5 new switch cases + imports
+7. All simulated data must be realistic, specific, and well-structured
+8. Services and Drivers should have believable Windows names and descriptions

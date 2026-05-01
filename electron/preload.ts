@@ -166,4 +166,35 @@ contextBridge.exposeInMainWorld('pchelper', {
   clearClipboardHistory: () => ipcRenderer.invoke('pchelper:clear-clipboard-history'),
   removeClipboardEntry: (id: string) => ipcRenderer.invoke('pchelper:remove-clipboard-entry', id),
   toggleClipboardPin: (id: string) => ipcRenderer.invoke('pchelper:toggle-clipboard-pin', id),
+
+  // Drivers
+  getDrivers: () => ipcRenderer.invoke('pchelper:get-drivers'),
+  getDriverDetails: (name: string) => ipcRenderer.invoke('pchelper:get-driver-details', name),
+  getProblemDrivers: () => ipcRenderer.invoke('pchelper:get-problem-drivers'),
+
+  // Services
+  getServices: () => ipcRenderer.invoke('pchelper:get-services'),
+  startService: (name: string) => ipcRenderer.invoke('pchelper:start-service', name),
+  stopService: (name: string) => ipcRenderer.invoke('pchelper:stop-service', name),
+  restartService: (name: string) => ipcRenderer.invoke('pchelper:restart-service', name),
+  setServiceStartup: (name: string, type: string) => ipcRenderer.invoke('pchelper:set-service-startup', name, type),
+  getServiceDetails: (name: string) => ipcRenderer.invoke('pchelper:get-service-details', name),
+
+  // Event Log
+  getEvents: (logName?: string, level?: string, limit?: number, search?: string) => ipcRenderer.invoke('pchelper:get-events', logName, level, limit, search),
+  getEventLogs: () => ipcRenderer.invoke('pchelper:get-event-logs'),
+  getEventCounts: () => ipcRenderer.invoke('pchelper:get-event-counts'),
+
+  // Battery
+  getBatteryStatus: () => ipcRenderer.invoke('pchelper:get-battery-status'),
+  getBatteryHistory: (hours?: number) => ipcRenderer.invoke('pchelper:get-battery-history', hours),
+  getBatteryReport: () => ipcRenderer.invoke('pchelper:get-battery-report'),
+
+  // Perf Log
+  getPerfLogSessions: () => ipcRenderer.invoke('pchelper:get-perf-log-sessions'),
+  startPerfRecording: (name: string) => ipcRenderer.invoke('pchelper:start-perf-recording', name),
+  stopPerfRecording: () => ipcRenderer.invoke('pchelper:stop-perf-recording'),
+  getPerfSessionData: (sessionId: string) => ipcRenderer.invoke('pchelper:get-perf-session-data', sessionId),
+  deletePerfSession: (sessionId: string) => ipcRenderer.invoke('pchelper:delete-perf-session', sessionId),
+  getActiveSession: () => ipcRenderer.invoke('pchelper:get-active-session'),
 });

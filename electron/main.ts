@@ -19,6 +19,11 @@ import { UsbManager } from './usb/manager';
 import { DiskAnalyzer } from './disk/analyzer';
 import { SecurityCenter } from './security/center';
 import { ClipboardManager } from './clipboard/history';
+import { DriverManager } from './drivers/manager';
+import { ServiceManager } from './services/manager';
+import { EventLogReader } from './events/reader';
+import { BatteryReporter } from './battery/reporter';
+import { PerfLogRecorder } from './perflog/recorder';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -39,6 +44,11 @@ const usbManager = new UsbManager();
 const diskAnalyzer = new DiskAnalyzer();
 const securityCenter = new SecurityCenter();
 const clipboardManager = new ClipboardManager();
+const driverManager = new DriverManager();
+const serviceManager = new ServiceManager();
+const eventLogReader = new EventLogReader();
+const batteryReporter = new BatteryReporter();
+const perfLogRecorder = new PerfLogRecorder();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -568,6 +578,95 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('pchelper:toggle-clipboard-pin', (_event, id: string) =>
     clipboardManager.togglePin(id)
+  );
+
+  // Drivers
+  ipcMain.handle('pchelper:get-drivers', () =>
+    driverManager.getDrivers()
+  );
+
+  ipcMain.handle('pchelper:get-driver-details', (_event, name: string) =>
+    driverManager.getDriverDetails(name)
+  );
+
+  ipcMain.handle('pchelper:get-problem-drivers', () =>
+    driverManager.getProblemDrivers()
+  );
+
+  // Services
+  ipcMain.handle('pchelper:get-services', () =>
+    serviceManager.getServices()
+  );
+
+  ipcMain.handle('pchelper:start-service', (_event, name: string) =>
+    serviceManager.startService(name)
+  );
+
+  ipcMain.handle('pchelper:stop-service', (_event, name: string) =>
+    serviceManager.stopService(name)
+  );
+
+  ipcMain.handle('pchelper:restart-service', (_event, name: string) =>
+    serviceManager.restartService(name)
+  );
+
+  ipcMain.handle('pchelper:set-service-startup', (_event, name: string, type: string) =>
+    serviceManager.setStartupType(name, type as import('./services/manager').ServiceEntry['startupType'])
+  );
+
+  ipcMain.handle('pchelper:get-service-details', (_event, name: string) =>
+    serviceManager.getServiceDetails(name)
+  );
+
+  // Event Log
+  ipcMain.handle('pchelper:get-events', (_event, logName?: string, level?: string, limit?: number, search?: string) =>
+    eventLogReader.getEvents(logName, level, limit, search)
+  );
+
+  ipcMain.handle('pchelper:get-event-logs', () =>
+    eventLogReader.getLogNames()
+  );
+
+  ipcMain.handle('pchelper:get-event-counts', () =>
+    eventLogReader.getEventCounts()
+  );
+
+  // Battery
+  ipcMain.handle('pchelper:get-battery-status', () =>
+    batteryReporter.getBatteryStatus()
+  );
+
+  ipcMain.handle('pchelper:get-battery-history', (_event, hours?: number) =>
+    batteryReporter.getBatteryHistory(hours)
+  );
+
+  ipcMain.handle('pchelper:get-battery-report', () =>
+    batteryReporter.getBatteryReport()
+  );
+
+  // Perf Log
+  ipcMain.handle('pchelper:get-perf-log-sessions', () =>
+    perfLogRecorder.getSessions()
+  );
+
+  ipcMain.handle('pchelper:start-perf-recording', (_event, name: string) =>
+    perfLogRecorder.startRecording(name)
+  );
+
+  ipcMain.handle('pchelper:stop-perf-recording', () =>
+    perfLogRecorder.stopRecording()
+  );
+
+  ipcMain.handle('pchelper:get-perf-session-data', (_event, sessionId: string) =>
+    perfLogRecorder.getSessionData(sessionId)
+  );
+
+  ipcMain.handle('pchelper:delete-perf-session', (_event, sessionId: string) =>
+    perfLogRecorder.deleteSession(sessionId)
+  );
+
+  ipcMain.handle('pchelper:get-active-session', () =>
+    perfLogRecorder.getActiveSession()
   );
 
   // Settings management
