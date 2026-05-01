@@ -14,6 +14,10 @@ import type { NetworkConnection, ListeningPort, ConnectionStats } from '../../el
 import type { FileAssociation, ProtocolAssociation } from '../../electron/files/associations';
 import type { DisplayMonitor, AdapterInfo, ColorProfile } from '../../electron/display/monitor';
 import type { PowerPlan, PowerReport } from '../../electron/power/manager';
+import type { RestorePoint, RestoreSettings } from '../../electron/restore/manager';
+import type { ScannedFile, ScanConfig } from '../../electron/files/scanner';
+import type { RemoteConnection } from '../../electron/remote/manager';
+import type { ExportReport, ReportTemplate } from '../../electron/report/exporter';
 
 export {};
 
@@ -203,6 +207,46 @@ declare global {
       getPowerPlans: () => Promise<PowerPlan[]>;
       setActivePlan: (guid: string) => Promise<{ success: boolean; message: string }>;
       getPowerReport: () => Promise<PowerReport>;
+
+      // System Restore
+      getRestorePoints: () => Promise<RestorePoint[]>;
+      getRestoreSettings: () => Promise<RestoreSettings>;
+      createRestorePoint: (description: string) => Promise<{ success: boolean; message: string; point?: RestorePoint }>;
+      restoreToPoint: (id: number) => Promise<{ success: boolean; message: string }>;
+      deleteRestorePoint: (id: number) => Promise<{ success: boolean; message: string }>;
+      toggleRestoreProtection: (enabled: boolean) => Promise<{ success: boolean }>;
+      setRestoreMaxUsage: (percentage: number) => Promise<{ success: boolean }>;
+
+      // File Scanner
+      scanFiles: (config: ScanConfig, onProgress: (pct: number, phase: string, found: number) => void) => Promise<{
+        files: ScannedFile[];
+        totalSizeMB: number;
+        totalFiles: number;
+        duplicates: ScannedFile[];
+        categories: Record<string, { count: number; totalMB: number }>;
+      }>;
+      cancelFileScan: () => Promise<void>;
+      getRecentFileScans: () => Promise<Array<{ timestamp: number; totalFiles: number; totalSizeMB: number; duplicates: number }>>;
+
+      // Remote Desktop Manager
+      getRemoteConnections: () => Promise<RemoteConnection[]>;
+      connectRemote: (id: string) => Promise<{ success: boolean; message: string; command?: string }>;
+      testRemoteConnection: (id: string) => Promise<{ success: boolean; latency: number; message: string }>;
+      addRemoteConnection: (conn: Omit<RemoteConnection, 'id' | 'lastConnected' | 'connectionCount'>) => Promise<RemoteConnection>;
+      updateRemoteConnection: (id: string, updates: Partial<RemoteConnection>) => Promise<RemoteConnection>;
+      deleteRemoteConnection: (id: string) => Promise<void>;
+      toggleRemoteFavorite: (id: string) => Promise<void>;
+      getRemoteGroups: () => Promise<string[]>;
+      exportRemoteConnections: () => Promise<string>;
+      importRemoteConnections: (path: string) => Promise<{ added: number; failed: number }>;
+
+      // Report Export
+      generateReport: (template?: ReportTemplate) => Promise<ExportReport>;
+      exportReportJson: (report: ExportReport) => Promise<string>;
+      exportReportHtml: (report: ExportReport) => Promise<string>;
+      exportReportText: (report: ExportReport) => Promise<string>;
+      exportReportCsv: (section: string, data: unknown[]) => Promise<string>;
+      getReportTemplates: () => Promise<ReportTemplate[]>;
     };
   }
 }

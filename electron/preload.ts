@@ -228,4 +228,51 @@ contextBridge.exposeInMainWorld('pchelper', {
   getPowerPlans: () => ipcRenderer.invoke('pchelper:get-power-plans'),
   setActivePlan: (guid: string) => ipcRenderer.invoke('pchelper:set-active-plan', guid),
   getPowerReport: () => ipcRenderer.invoke('pchelper:get-power-report'),
+
+  // System Restore
+  getRestorePoints: () => ipcRenderer.invoke('pchelper:get-restore-points'),
+  getRestoreSettings: () => ipcRenderer.invoke('pchelper:get-restore-settings'),
+  createRestorePoint: (description: string) =>
+    ipcRenderer.invoke('pchelper:create-restore-point', description),
+  restoreToPoint: (id: number) =>
+    ipcRenderer.invoke('pchelper:restore-to-point', id),
+  deleteRestorePoint: (id: number) =>
+    ipcRenderer.invoke('pchelper:delete-restore-point', id),
+  toggleRestoreProtection: (enabled: boolean) =>
+    ipcRenderer.invoke('pchelper:toggle-restore-protection', enabled),
+  setRestoreMaxUsage: (percentage: number) =>
+    ipcRenderer.invoke('pchelper:set-restore-max-usage', percentage),
+
+  // File Scanner
+  scanFiles: (config: unknown, onProgress: (pct: number, phase: string, found: number) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { pct: number; phase: string; found: number }) =>
+      onProgress(data.pct, data.phase, data.found);
+    ipcRenderer.on('pchelper:file-scan-progress', handler);
+    return ipcRenderer.invoke('pchelper:scan-files', config).finally(() => {
+      ipcRenderer.removeListener('pchelper:file-scan-progress', handler);
+    });
+  },
+  cancelFileScan: () => ipcRenderer.invoke('pchelper:cancel-file-scan'),
+  getRecentFileScans: () => ipcRenderer.invoke('pchelper:get-recent-file-scans'),
+
+  // Remote Desktop Manager
+  getRemoteConnections: () => ipcRenderer.invoke('pchelper:get-remote-connections'),
+  connectRemote: (id: string) => ipcRenderer.invoke('pchelper:connect-remote', id),
+  testRemoteConnection: (id: string) => ipcRenderer.invoke('pchelper:test-remote-connection', id),
+  addRemoteConnection: (conn: unknown) => ipcRenderer.invoke('pchelper:add-remote-connection', conn),
+  updateRemoteConnection: (id: string, updates: unknown) =>
+    ipcRenderer.invoke('pchelper:update-remote-connection', id, updates),
+  deleteRemoteConnection: (id: string) => ipcRenderer.invoke('pchelper:delete-remote-connection', id),
+  toggleRemoteFavorite: (id: string) => ipcRenderer.invoke('pchelper:toggle-remote-favorite', id),
+  getRemoteGroups: () => ipcRenderer.invoke('pchelper:get-remote-groups'),
+  exportRemoteConnections: () => ipcRenderer.invoke('pchelper:export-remote-connections'),
+  importRemoteConnections: (path: string) => ipcRenderer.invoke('pchelper:import-remote-connections', path),
+
+  // Report Export
+  generateReport: (template?: unknown) => ipcRenderer.invoke('pchelper:generate-report', template),
+  exportReportJson: (report: unknown) => ipcRenderer.invoke('pchelper:export-report-json', report),
+  exportReportHtml: (report: unknown) => ipcRenderer.invoke('pchelper:export-report-html', report),
+  exportReportText: (report: unknown) => ipcRenderer.invoke('pchelper:export-report-text', report),
+  exportReportCsv: (section: string, data: unknown[]) => ipcRenderer.invoke('pchelper:export-report-csv', section, data),
+  getReportTemplates: () => ipcRenderer.invoke('pchelper:get-report-templates'),
 });

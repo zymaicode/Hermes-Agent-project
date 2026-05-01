@@ -29,6 +29,10 @@ import { NetworkConnectionMonitor } from './network/connections';
 import { FileAssociationReader } from './files/associations';
 import { DisplayInfoCollector } from './display/monitor';
 import { PowerPlanManager } from './power/manager';
+import { RestoreManager } from './restore/manager';
+import { FileScanner } from './files/scanner';
+import { RemoteDesktopManager } from './remote/manager';
+import { ReportExporter } from './report/exporter';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -59,6 +63,10 @@ const networkConnectionMonitor = new NetworkConnectionMonitor();
 const fileAssociationReader = new FileAssociationReader();
 const displayInfoCollector = new DisplayInfoCollector();
 const powerPlanManager = new PowerPlanManager();
+const restoreManager = new RestoreManager();
+const fileScanner = new FileScanner();
+const remoteDesktopManager = new RemoteDesktopManager();
+const reportExporter = new ReportExporter();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -758,6 +766,119 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle('pchelper:get-power-report', () =>
     powerPlanManager.getReport()
+  );
+
+  // System Restore
+  ipcMain.handle('pchelper:get-restore-points', () =>
+    restoreManager.getRestorePoints()
+  );
+
+  ipcMain.handle('pchelper:get-restore-settings', () =>
+    restoreManager.getSettings()
+  );
+
+  ipcMain.handle('pchelper:create-restore-point', (_event, description: string) =>
+    restoreManager.createRestorePoint(description)
+  );
+
+  ipcMain.handle('pchelper:restore-to-point', (_event, id: number) =>
+    restoreManager.restoreToPoint(id)
+  );
+
+  ipcMain.handle('pchelper:delete-restore-point', (_event, id: number) =>
+    restoreManager.deleteRestorePoint(id)
+  );
+
+  ipcMain.handle('pchelper:toggle-restore-protection', (_event, enabled: boolean) =>
+    restoreManager.toggleProtection(enabled)
+  );
+
+  ipcMain.handle('pchelper:set-restore-max-usage', (_event, percentage: number) =>
+    restoreManager.setMaxUsage(percentage)
+  );
+
+  // File Scanner
+  ipcMain.handle('pchelper:scan-files', async (_event, config: import('./files/scanner').ScanConfig) => {
+    const result = await fileScanner.scanFiles(config, (pct, phase, found) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('pchelper:file-scan-progress', { pct, phase, found });
+      }
+    });
+    return result;
+  });
+
+  ipcMain.handle('pchelper:cancel-file-scan', () => {
+    fileScanner.cancel();
+  });
+
+  ipcMain.handle('pchelper:get-recent-file-scans', () =>
+    fileScanner.getRecentScans()
+  );
+
+  // Remote Desktop Manager
+  ipcMain.handle('pchelper:get-remote-connections', () =>
+    remoteDesktopManager.getConnections()
+  );
+
+  ipcMain.handle('pchelper:connect-remote', (_event, id: string) =>
+    remoteDesktopManager.connect(id)
+  );
+
+  ipcMain.handle('pchelper:test-remote-connection', (_event, id: string) =>
+    remoteDesktopManager.testConnection(id)
+  );
+
+  ipcMain.handle('pchelper:add-remote-connection', (_event, conn: Omit<import('./remote/manager').RemoteConnection, 'id' | 'lastConnected' | 'connectionCount'>) =>
+    remoteDesktopManager.addConnection(conn)
+  );
+
+  ipcMain.handle('pchelper:update-remote-connection', (_event, id: string, updates: Partial<import('./remote/manager').RemoteConnection>) =>
+    remoteDesktopManager.updateConnection(id, updates)
+  );
+
+  ipcMain.handle('pchelper:delete-remote-connection', (_event, id: string) => {
+    remoteDesktopManager.deleteConnection(id);
+  });
+
+  ipcMain.handle('pchelper:toggle-remote-favorite', (_event, id: string) => {
+    remoteDesktopManager.toggleFavorite(id);
+  });
+
+  ipcMain.handle('pchelper:get-remote-groups', () =>
+    remoteDesktopManager.getGroups()
+  );
+
+  ipcMain.handle('pchelper:export-remote-connections', () =>
+    remoteDesktopManager.exportToFile()
+  );
+
+  ipcMain.handle('pchelper:import-remote-connections', (_event, path: string) =>
+    remoteDesktopManager.importFromFile(path)
+  );
+
+  // Report Export
+  ipcMain.handle('pchelper:generate-report', (_event, template?: import('./report/exporter').ReportTemplate) =>
+    reportExporter.generateReport(template)
+  );
+
+  ipcMain.handle('pchelper:export-report-json', (_event, report: import('./report/exporter').ExportReport) =>
+    reportExporter.exportToJson(report)
+  );
+
+  ipcMain.handle('pchelper:export-report-html', (_event, report: import('./report/exporter').ExportReport) =>
+    reportExporter.exportToHtml(report)
+  );
+
+  ipcMain.handle('pchelper:export-report-text', (_event, report: import('./report/exporter').ExportReport) =>
+    reportExporter.exportToText(report)
+  );
+
+  ipcMain.handle('pchelper:export-report-csv', (_event, section: string, data: unknown[]) =>
+    reportExporter.exportToCsv(section, data as Record<string, unknown>[])
+  );
+
+  ipcMain.handle('pchelper:get-report-templates', () =>
+    reportExporter.getAvailableTemplates()
   );
 
   // Settings management

@@ -30,6 +30,8 @@ import {
   GitFork,
   FileType,
   MonitorSmartphone,
+  RotateCcw,
+  FileText,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { useConflictStore } from '../../stores/conflictStore';
@@ -88,6 +90,15 @@ const navSections: { heading: string; items: NavItem[] }[] = [
       { id: 'updates', label: 'Updates', icon: RefreshCw },
       { id: 'scheduler', label: 'Tasks', icon: Calendar },
       { id: 'power', label: 'Power Plan', icon: Zap },
+    ],
+  },
+  {
+    heading: 'Advanced',
+    items: [
+      { id: 'restore', label: 'Restore', icon: RotateCcw },
+      { id: 'filescanner', label: 'File Scanner', icon: Search },
+      { id: 'remote', label: 'Remote', icon: Monitor },
+      { id: 'report', label: 'Report', icon: FileText },
     ],
   },
   {

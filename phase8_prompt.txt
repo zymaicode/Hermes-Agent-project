@@ -1,0 +1,354 @@
+## PCHelper — Phase 8: System Restore, File Scanner, Remote Desktop Manager, Hardware Report Export
+
+Current project: 108 files, 19,611 lines, zero TS errors. 32 nav items. Dark theme with full design system.
+
+### Task 1: System Restore Manager (`electron/restore/manager.ts` + `src/components/RestoreView/index.tsx` + store)
+
+Backend (`electron/restore/manager.ts`):
+```typescript
+export interface RestorePoint {
+  id: number;
+  description: string;
+  type: 'system' | 'manual' | 'install' | 'update';
+  created: string;
+  status: 'available' | 'deleted';
+  sizeMB: number;
+  eventType: string; // "Windows Update", "Application Install", "System Restore", "Manual"
+  isAutomatic: boolean;
+}
+
+export interface RestoreSettings {
+  enabled: boolean;
+  diskSpaceUsed: number; // MB
+  maxUsage: number; // percentage of disk
+  lastRestore: string | null;
+  nextScheduled: string | null;
+  drives: string[];
+}
+
+export class RestoreManager {
+  getRestorePoints(): RestorePoint[] {
+    // Simulate: 12 realistic restore points over last 2 months
+    // Mix: Windows Updates (KB patches), driver installs, manual points, app installs
+    // Sizes range from 150MB to 2.5GB
+    // Some old points auto-deleted (status: deleted)
+  }
+
+  getSettings(): RestoreSettings {
+    // Enabled: true, 3% max usage, C: only, last restore 14 days ago
+  }
+
+  createRestorePoint(description: string): { success: boolean; message: string; point?: RestorePoint } {
+    // Create a new manual restore point
+  }
+
+  restoreToPoint(id: number): { success: boolean; message: string } {
+    // Simulate: restore, warn about irreversibility
+  }
+
+  deleteRestorePoint(id: number): { success: boolean; message: string } { }
+  toggleProtection(enabled: boolean): { success: boolean } { }
+  setMaxUsage(percentage: number): { success: boolean } { }
+}
+```
+
+IPC: `pchelper:get-restore-points`, `pchelper:get-restore-settings`, `pchelper:create-restore-point`, `pchelper:restore-to-point`, `pchelper:delete-restore-point`, `pchelper:toggle-restore-protection`, `pchelper:set-restore-max-usage`
+
+UI (`src/components/RestoreView/index.tsx`):
+- **Protection status card** at top: 
+  - "Protection is ON" (green) or "OFF" (red) with toggle switch
+  - Disk usage bar: "X MB used (X% of max allocation)"
+  - Last restore date, next scheduled
+  - "Create Restore Point" button (prominent, blue)
+- **Restore points table**:
+  - Columns: Date/Time, Description, Type (badge), Size, Status (available/deleted badge)
+  - Sortable by date, size
+  - Color: system restore points = blue badge, manual = green, update = yellow, install = purple
+  - Gray out deleted points
+  - Search by description
+- **Actions** per row (hover): Restore button (with confirmation modal) + Delete button
+- **Restore modal**: 
+  - "Are you sure?" with restore point details
+  - Warning: "System will restart" / "This cannot be undone"
+  - Confirmation text input: type "RESTORE" to confirm
+- **Empty state**: if no restore points, show "No restore points created yet"
+- **Create modal**: description input + create button
+
+### Task 2: File Scanner (`electron/files/scanner.ts` + `src/components/FileScannerView/index.tsx` + store)
+
+Backend (`electron/files/scanner.ts`):
+```typescript
+export interface ScannedFile {
+  name: string;
+  path: string;
+  sizeMB: number;
+  type: 'document' | 'image' | 'video' | 'audio' | 'archive' | 'installer' | 'code' | 'other';
+  extension: string;
+  lastModified: string;
+  created: string;
+  isDuplicate: boolean;
+  duplicateGroup?: string;
+  attributes: string[]; // ['readonly', 'hidden', 'system', 'archive']
+}
+
+export interface ScanConfig {
+  directories: string[];
+  minSizeMB: number;
+  maxSizeMB: number;
+  fileTypes: string[];
+  includeSystem: boolean;
+  includeHidden: boolean;
+  findDuplicates: boolean;
+}
+
+export class FileScanner {
+  private cancelled = false;
+  
+  cancel(): void { this.cancelled = true; }
+
+  async scanFiles(config: ScanConfig, progress: (pct: number, phase: string, found: number) => void): Promise<{
+    files: ScannedFile[];
+    totalSizeMB: number;
+    totalFiles: number;
+    duplicates: ScannedFile[];
+    categories: Record<string, { count: number; totalMB: number }>;
+  }> {
+    // Simulate: progressive scan over ~8 seconds
+    // Phase 1 (0-20%): "Scanning directories..."
+    // Phase 2 (20-50%): "Analyzing files..." 
+    // Phase 3 (50-80%): "Checking for duplicates..."
+    // Phase 4 (80-100%): "Building results..."
+    // Result: 80-120 files across User directories
+    // Include: large video files (2-8GB), installer ISOs (1-5GB),
+    // duplicate downloads, temp files, old backups
+    // Realistic paths: C:\Users\[User]\Downloads, Documents, Desktop, Videos, AppData
+  }
+
+  getRecentScans(): Array<{ timestamp: number; totalFiles: number; totalSizeMB: number; duplicates: number }> {
+    return [];
+  }
+}
+```
+
+IPC: `pchelper:scan-files` (emits progress events), `pchelper:cancel-file-scan`, `pchelper:get-recent-file-scans`
+Preload: `scanFiles`, `cancelFileScan`, `getRecentFileScans`, `onFileScanProgress`
+
+UI (`src/components/FileScannerView/index.tsx`):
+- **Config panel** (top, collapsible):
+  - Directory checkboxes: Desktop, Downloads, Documents, Videos, Pictures, Music, AppData
+  - Min file size: dropdown (10MB, 50MB, 100MB, 500MB, 1GB)
+  - File type filters: Documents, Images, Video, Audio, Archives, Installers, All
+  - "Find duplicate files" toggle
+  - "Include system/hidden files" toggle
+  - "Start Scan" big button (primary)
+- **Scanning state** (while running):
+  - Progress bar with percentage + phase description
+  - Files found counter (live updating)
+  - "Cancel" button (red)
+  - Estimated time remaining
+- **Results state**:
+  - Summary bar: "Found X files (Y.YY GB) · Z duplicates"
+  - **By category** donut/pie chart (Recharts): show size distribution
+  - **Tabs**: "All Files" | "Large Files" | "Duplicates" | "By Category"
+  - **All Files tab**: sortable table — Name, Path, Size, Type, Last Modified
+    - Color code by type: video=purple, installer=orange, archive=yellow, document=blue
+  - **Large Files tab**: top 20 largest files, each with size bar
+  - **Duplicates tab**: grouped by duplicate group, show file paths side by side, total wasted space
+    - "Select all duplicates" + "Delete Selected" button (with confirm)
+  - **By Category tab**: bar chart showing size per category
+  - Export as CSV button
+
+### Task 3: Remote Desktop Manager (`electron/remote/manager.ts` + `src/components/RemoteView/index.tsx` + store)
+
+Backend (`electron/remote/manager.ts`):
+```typescript
+export interface RemoteConnection {
+  id: string;
+  name: string; // "Home PC", "Work Server"
+  host: string; // IP or hostname
+  port: number;
+  protocol: 'RDP' | 'VNC' | 'SSH' | 'TeamViewer' | 'AnyDesk';
+  username: string;
+  authenticationType: 'password' | 'key' | 'smartcard' | 'network_level';
+  resolution: string; // "1920x1080", "2560x1440"
+  colorDepth: number; // 16, 24, 32
+  useGateway: boolean;
+  gatewayHost?: string;
+  favorite: boolean;
+  lastConnected: string | null;
+  connectionCount: number;
+  group: string; // "Work", "Home", "Servers", etc.
+  notes: string;
+  tags: string[];
+  status: 'online' | 'offline' | 'unknown';
+  localDrives: boolean;
+  clipboardSharing: boolean;
+  audioRedirection: 'local' | 'remote' | 'none';
+}
+
+export class RemoteDesktopManager {
+  getConnections(): RemoteConnection[] {
+    // Simulate: 10+ saved remote connections
+    // RDP: Work PC (192.168.1.100), Home Server (10.0.0.50), Azure VM
+    // SSH: Dev Server (dev.example.com), Raspberry Pi
+    // VNC: Media Center (192.168.1.80)
+    // TeamViewer: Client PC, Remote Office
+    // Mix: favorites, different groups, some recently connected, some never
+  }
+
+  connect(id: string): { success: boolean; message: string; command?: string } {
+    // Simulate: return the command that would be run (e.g., "mstsc /v:192.168.1.100")
+  }
+
+  testConnection(id: string): { success: boolean; latency: number; message: string } {
+    // Simulate: ping test
+  }
+
+  addConnection(conn: Omit<RemoteConnection, 'id' | 'lastConnected' | 'connectionCount'>): RemoteConnection { }
+  updateConnection(id: string, updates: Partial<RemoteConnection>): RemoteConnection { }
+  deleteConnection(id: string): void { }
+  toggleFavorite(id: string): void { }
+  getGroups(): string[] { return ['Work', 'Home', 'Servers', 'Clients', 'Cloud']; }
+  importFromFile(path: string): { added: number; failed: number } { }
+  exportToFile(): string { return '[]'; }
+}
+```
+
+IPC: `pchelper:get-remote-connections`, `pchelper:connect-remote`, `pchelper:test-remote-connection`, `pchelper:add-remote-connection`, `pchelper:update-remote-connection`, `pchelper:delete-remote-connection`, `pchelper:toggle-remote-favorite`, `pchelper:get-remote-groups`, `pchelper:export-remote-connections`, `pchelper:import-remote-connections`
+
+UI (`src/components/RemoteView/index.tsx`):
+- **Top bar**: "New Connection" button + search + group filter dropdown
+- **Group tabs**: horizontal tab bar (All / Work / Home / Servers / Clients / Cloud)
+  - Each tab shows count badge
+- **Connection cards** (grid, 2 columns):
+  - Each card: protocol icon/color (RDP=blue, SSH=green, VNC=purple), connection name (bold), host:port, username
+  - Status indicator: green dot (online), gray (offline), yellow (unknown)
+  - Last connected relative time
+  - Favorite star toggle (filled gold / outline)
+  - Group badge
+  - Hover actions: Connect button, Edit, Delete
+  - Click card → expand detail panel
+- **Detail panel** (expanded card or modal):
+  - Full connection info: protocol, resolution, color depth, auth type
+  - Gateway info if applicable
+  - Features: local drives toggle, clipboard, audio redirection
+  - Notes textarea
+  - Tags as badges
+  - Connection count + last connected
+  - Test Connection button + latency display
+  - "Connect Now" big button (opens mstsc/ssh/vnc viewer)
+- **Empty state**: "No remote connections yet. Create your first connection."
+- **New/Edit modal**: form with all fields, grouped sections
+- **Import/Export**: buttons in top bar dropdown
+
+### Task 4: Hardware Report Export (`electron/report/exporter.ts` + `src/components/ReportView/index.tsx` + store)
+
+Backend (`electron/report/exporter.ts`):
+```typescript
+export interface ExportReport {
+  generatedAt: string;
+  systemInfo: {
+    hostname: string;
+    os: string;
+    uptime: string;
+    manufacturer: string;
+    model: string;
+  };
+  hardware: {
+    cpu: { name: string; cores: number; threads: number; baseClock: number; usage: number; temp: number };
+    memory: { total: number; used: number; slots: number; type: string };
+    disks: Array<{ name: string; total: number; used: number; type: string; health: string }>;
+    gpu: { name: string; vram: number; usage: number; temp: number };
+    motherboard: { manufacturer: string; model: string; bios: string };
+  };
+  software: { totalInstalled: number; topApps: string[]; pendingUpdates: number; conflicts: number };
+  health: { score: number; grade: string; topIssues: string[] };
+  performance: { benchmarkScore: number; benchmarkGrade: string };
+  recommendations: string[];
+}
+
+export interface ReportTemplate {
+  name: string;
+  sections: ('summary' | 'hardware' | 'software' | 'health' | 'performance' | 'full')[];
+  format: 'json' | 'html' | 'text' | 'csv';
+  includeCharts: boolean;
+  includeRecommendations: boolean;
+}
+
+export class ReportExporter {
+  generateReport(template?: ReportTemplate): ExportReport {
+    // Compile data from all existing collectors
+    // Combine hardware snapshot, software list, health score, benchmark
+    // Generate comprehensive system report
+  }
+
+  exportToJson(report: ExportReport): string { return JSON.stringify(report, null, 2); }
+  
+  exportToHtml(report: ExportReport): string {
+    // Generate a beautiful HTML page with:
+    // - Dark theme matching the app
+    // - Summary card at top with overall health score
+    // - Sections with expandable details
+    // - Embedded CSS (no external deps)
+    // - Print-friendly
+  }
+
+  exportToText(report: ExportReport): string {
+    // Generate formatted plain text (for pasting into tickets, emails)
+  }
+
+  exportToCsv(section: string, data: any[]): string {
+    // Generate CSV for specific sections (software list, hardware readings)
+  }
+
+  getAvailableTemplates(): ReportTemplate[] {
+    return [
+      { name: 'Quick Summary', sections: ['summary'], format: 'text', includeCharts: false, includeRecommendations: true },
+      { name: 'Full Report', sections: ['full'], format: 'html', includeCharts: true, includeRecommendations: true },
+      { name: 'Hardware Specs', sections: ['hardware'], format: 'json', includeCharts: false, includeRecommendations: false },
+      { name: 'Software Inventory', sections: ['software'], format: 'csv', includeCharts: false, includeRecommendations: false },
+    ];
+  }
+}
+```
+
+IPC: `pchelper:generate-report`, `pchelper:export-report-json`, `pchelper:export-report-html`, `pchelper:export-report-text`, `pchelper:export-report-csv`, `pchelper:get-report-templates`
+
+UI (`src/components/ReportView/index.tsx`):
+- **Quick actions** row at top:
+  - "Quick Summary" (text format, opens in preview)
+  - "Full Report" (HTML, most detailed)
+  - "Hardware Specs Only" (JSON)
+  - "Export All as CSV" 
+  - Each action button with appropriate icon
+- **Report builder** section:
+  - Section checkboxes: Summary, Hardware, Software, Health, Benchmark, Recommendations
+  - Format selector: HTML / JSON / Plain Text / CSV
+  - "Include charts" toggle (for HTML format)
+  - "Generate & Preview" button
+- **Report preview** (main area):
+  - If HTML: render in a rich preview div (styled inline)
+  - If text: monospace preview in a pre/textarea
+  - If JSON: syntax-highlighted JSON in monospace
+  - If CSV: table preview with sortable columns
+  - Toggle between preview and raw views
+- **Report header**: generated timestamp, system name, report type
+- **Export buttons** below preview:
+  - "Save as file..." → trigger download dialog
+  - "Copy to clipboard" button
+  - "Print" button
+  - "Email Report" button (opens in mailto if configured)
+- **Past reports** section (collapsible): list of exported reports with timestamps
+- **Auto-save** preferences: remember last used template
+
+### NavPage additions: 'restore' | 'filescanner' | 'remote' | 'report'
+New icons: RotateCcw (restore), Search (filescanner), MonitorSmartphone (remote), FileText (report)
+
+### IMPORTANT RULES:
+1. After ALL changes: `npx tsc --noEmit` (zero errors required)
+2. npm install already done, do NOT re-run it
+3. Do NOT modify existing working code unless necessary for integration
+4. Keep the dark theme consistent, use existing common components (Badge, PageHeader, LoadingState, StatCard)
+5. Sidebar: add new items after Power Plan, before Display
+6. App.tsx: 4 new switch cases + imports
+7. All simulated data must be realistic and complete

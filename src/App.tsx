@@ -33,6 +33,10 @@ import NetConnView from './components/NetConnView';
 import FileTypeView from './components/FileTypeView';
 import DisplayView from './components/DisplayView';
 import PowerView from './components/PowerView';
+import RestoreView from './components/RestoreView';
+import FileScannerView from './components/FileScannerView';
+import RemoteView from './components/RemoteView';
+import ReportView from './components/ReportView';
 import TitleBar from './components/TitleBar';
 import { useAppStore } from './stores/appStore';
 import { useHardwareStore } from './stores/hardwareStore';
@@ -105,6 +109,14 @@ function MainContent() {
       return <DisplayView />;
     case 'power':
       return <PowerView />;
+    case 'restore':
+      return <RestoreView />;
+    case 'filescanner':
+      return <FileScannerView />;
+    case 'remote':
+      return <RemoteView />;
+    case 'report':
+      return <ReportView />;
     default:
       return <Dashboard />;
   }
