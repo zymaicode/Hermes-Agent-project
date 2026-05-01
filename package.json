@@ -2,6 +2,7 @@
   "name": "pchelper",
   "version": "1.0.0",
   "description": "PC Hardware Diagnostics & Health Assessment Tool",
+  "author": "PCHelper Team <pchelper@example.com>",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -40,6 +41,14 @@
         "portable"
       ],
       "icon": "assets/icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "snap"
+      ],
+      "icon": "assets/icon.png",
+      "category": "Utility"
     },
     "nsis": {
       "oneClick": false,
