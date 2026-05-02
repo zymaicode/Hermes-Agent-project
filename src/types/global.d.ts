@@ -29,6 +29,7 @@ import type { WindowsFeature } from '../../electron/features/manager';
 import type { SoundScheme, SystemSound, AudioDevice } from '../../electron/sounds/manager';
 import type { FontEntry } from '../../electron/fonts/manager';
 import type { MonitorInfo, AudioDeviceInfo, BluetoothDeviceEntry, PrinterEntry, GameControllerEntry } from '../../electron/external/deviceManager';
+import type { PrivacyScanResult } from '../../electron/privacy/types';
 import type { PingResult } from '../../electron/netdiag/ping';
 import type { ProcessAnalysisResult } from '../../electron/ai/behaviorAnalyzer';
 import type { TraceRouteResult } from '../../electron/netdiag/traceroute';
@@ -465,6 +466,12 @@ declare global {
       getWidgetLayout: () => Promise<WidgetLayout>;
       saveWidgetLayout: (layout: WidgetLayout) => Promise<true>;
       getWidgetDefaults: () => Promise<WidgetLayout>;
+
+      // Privacy Cleanup
+      scanPrivacy: () => Promise<PrivacyScanResult>;
+      cleanBrowserTrace: (browser: string, traceType: string) => Promise<{ success: boolean; freedMB: number }>;
+      cleanAllPrivacy: () => Promise<{ totalFreedMB: number; results: Array<{ browser: string; traceType: string; success: boolean; freedMB: number }> }>;
+      clearRecentFiles: () => Promise<{ cleared: number }>;
     };
   }
 

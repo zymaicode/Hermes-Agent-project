@@ -70,6 +70,7 @@ import { getWidgetLayout, saveWidgetLayout, getWidgetDefaults } from './widget/w
 import { LanScanner } from './network/lanScanner';
 import { DnsCacheManager } from './network/dnsCache';
 import { BandwidthTop } from './network/bandwidthTop';
+import { PrivacyScanner } from './privacy/privacyScanner';
 import { saveSpeedTest, getSpeedTestHistory, clearSpeedTestHistory, getSpeedTestStats, getSpeedTestTopResults } from './network/speedTestHistoryBridge';
 import type { HardwareSnapshot } from './hardware/collector';
 import { initTray, updateTrayStats, showTrayNotification, destroyTray } from './trayManager';
@@ -129,6 +130,7 @@ const deviceManager = new DeviceManager();
 const lanScanner = new LanScanner();
 const dnsCacheManager = new DnsCacheManager();
 const bandwidthTop = new BandwidthTop();
+const privacyScanner = new PrivacyScanner();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -1401,6 +1403,12 @@ function registerIpcHandlers(): void {
     db.prepare('DELETE FROM settings').run();
     return { success: true };
   });
+
+  // Privacy Scanner
+  ipcMain.handle('pchelper:scan-privacy', async () => privacyScanner.scan());
+  ipcMain.handle('pchelper:clean-browser-trace', async (_, browser, traceType) => privacyScanner.cleanBrowserTrace(browser, traceType));
+  ipcMain.handle('pchelper:clean-all-privacy', async () => privacyScanner.cleanAllBrowserTraces());
+  ipcMain.handle('pchelper:clear-recent-files', async () => privacyScanner.clearRecentFiles());
 
   // FPS History
   ipcMain.handle('pchelper:fps-start-recording', (_event, gameName: string) => {

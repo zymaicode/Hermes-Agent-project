@@ -98,6 +98,7 @@ const navSections: { heading: string; items: NavItem[] }[] = [
       { id: 'security', label: 'Security', icon: ShieldCheck },
       { id: 'usb', label: 'USB Devices', icon: Usb },
       { id: 'accounts', label: 'Accounts', icon: UserCircle },
+      { id: 'privacy', label: 'Privacy', icon: Eye },
     ],
   },
   {

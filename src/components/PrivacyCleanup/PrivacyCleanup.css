@@ -1,0 +1,84 @@
+.privacy-page { height: 100%; overflow-y: auto; }
+
+/* Headers */
+.privacy-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.privacy-title { font-size: 20px; font-weight: 600; }
+
+/* Score ring section */
+.privacy-score-section { display: flex; gap: 24px; align-items: center; margin-bottom: 24px; padding: 20px; background: var(--dash-card-bg, var(--card-bg)); border: 1px solid var(--dash-card-border, var(--card-border)); border-radius: 12px; }
+.privacy-score-ring { flex-shrink: 0; }
+.privacy-score-info { flex: 1; }
+.privacy-score-value { font-size: 36px; font-weight: 700; font-family: var(--font-mono, monospace); }
+.privacy-score-grade { font-size: 14px; font-weight: 600; margin-top: 4px; }
+.privacy-score-detail { font-size: 12px; color: var(--text-secondary); margin-top: 8px; }
+.privacy-score-actions { display: flex; gap: 8px; }
+
+/* Action buttons */
+.privacy-scan-btn { padding: 10px 20px; border: 1px solid var(--accent); border-radius: 8px; background: transparent; color: var(--accent); cursor: pointer; font-size: 14px; font-weight: 500; font-family: inherit; }
+.privacy-scan-btn:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.privacy-scan-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.privacy-clean-all-btn { padding: 10px 20px; border: 1px solid var(--red); border-radius: 8px; background: transparent; color: var(--red); cursor: pointer; font-size: 14px; font-weight: 500; font-family: inherit; }
+.privacy-clean-all-btn:hover { background: color-mix(in srgb, var(--red) 10%, transparent); }
+.privacy-clean-all-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Risk cards */
+.privacy-risks { margin-bottom: 24px; }
+.privacy-risk-card { padding: 14px; border-radius: 8px; margin-bottom: 8px; border: 1px solid var(--card-border); cursor: pointer; transition: background 0.15s; }
+.privacy-risk-card:hover { background: color-mix(in srgb, var(--accent) 3%, transparent); }
+.privacy-risk-critical { border-left: 3px solid var(--red); }
+.privacy-risk-high { border-left: 3px solid var(--orange); }
+.privacy-risk-medium { border-left: 3px solid var(--yellow); }
+.privacy-risk-low { border-left: 3px solid var(--green); }
+.privacy-risk-header { display: flex; justify-content: space-between; align-items: center; }
+.privacy-risk-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+.privacy-risk-category { font-weight: 600; font-size: 14px; }
+.privacy-risk-desc { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+.privacy-risk-details { font-size: 12px; color: var(--text-secondary); margin-top: 8px; padding: 8px; background: color-mix(in srgb, var(--accent) 4%, transparent); border-radius: 6px; }
+.privacy-risk-recommendation { font-size: 12px; color: var(--accent); margin-top: 6px; }
+
+/* Browser tabs */
+.privacy-browser-section { margin-bottom: 24px; }
+.privacy-browser-tabs { display: flex; gap: 4px; margin-bottom: 0; }
+.privacy-browser-tab { padding: 8px 16px; border-radius: 6px 6px 0 0; font-size: 13px; cursor: pointer; border: 1px solid var(--card-border); border-bottom: none; background: var(--bg-secondary); color: var(--text-secondary); font-family: inherit; transition: background 0.15s, color 0.15s; }
+.privacy-browser-tab.active { background: var(--dash-card-bg, var(--card-bg)); font-weight: 600; color: var(--text-primary); }
+.privacy-browser-tab:hover:not(.active) { background: var(--bg-hover); color: var(--text-primary); }
+.privacy-browser-content { border: 1px solid var(--card-border); border-radius: 0 8px 8px 8px; padding: 16px; background: var(--dash-card-bg, var(--card-bg)); }
+.privacy-browser-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.privacy-browser-clean-all { padding: 4px 12px; border: 1px solid var(--orange); border-radius: 4px; background: transparent; color: var(--orange); cursor: pointer; font-size: 11px; font-family: inherit; }
+.privacy-browser-clean-all:hover { background: color-mix(in srgb, var(--orange) 10%, transparent); }
+
+/* Tables */
+.privacy-table { width: 100%; border-collapse: collapse; }
+.privacy-table th { text-align: left; font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; padding: 8px 12px; border-bottom: 1px solid var(--card-border); }
+.privacy-table td { padding: 8px 12px; font-size: 13px; border-bottom: 1px solid var(--card-border); }
+.privacy-table tr:last-child td { border-bottom: none; }
+.privacy-table tr:hover td { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+
+/* Clean buttons in table */
+.privacy-clean-btn { padding: 4px 12px; border: 1px solid var(--card-border); border-radius: 4px; background: var(--card-bg); cursor: pointer; font-size: 11px; font-family: inherit; color: var(--text-secondary); }
+.privacy-clean-btn:hover { border-color: var(--orange); color: var(--orange); }
+.privacy-clean-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.privacy-clean-btn.can-clean { border-color: var(--orange); color: var(--orange); }
+
+/* Recent files */
+.privacy-files-section { margin-bottom: 24px; }
+.privacy-files-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.privacy-files-count { font-size: 12px; color: var(--text-secondary); }
+.privacy-file-row { display: flex; align-items: center; padding: 8px 12px; gap: 12px; border-bottom: 1px solid var(--card-border); font-size: 13px; }
+.privacy-file-row:hover { background: color-mix(in srgb, var(--accent) 4%, transparent); }
+.privacy-file-icon { flex-shrink: 0; opacity: 0.5; }
+.privacy-file-name { flex: 0 0 180px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.privacy-file-path { flex: 1; font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.privacy-file-app { flex: 0 0 130px; font-size: 12px; color: var(--text-secondary); }
+.privacy-file-time { flex: 0 0 160px; font-size: 12px; color: var(--text-secondary); }
+.privacy-file-size { flex: 0 0 70px; font-size: 12px; color: var(--text-secondary); text-align: right; }
+.privacy-clear-files-btn { padding: 6px 16px; border: 1px solid var(--orange); border-radius: 6px; background: transparent; color: var(--orange); cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; }
+.privacy-clear-files-btn:hover { background: color-mix(in srgb, var(--orange) 10%, transparent); }
+.privacy-clear-files-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Empty state */
+.privacy-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60%; color: var(--text-secondary); gap: 16px; }
+.privacy-empty-icon { opacity: 0.3; }
+.privacy-empty h3 { font-size: 18px; font-weight: 500; margin: 0; }
+.privacy-empty p { font-size: 14px; max-width: 400px; text-align: center; margin: 0; line-height: 1.5; }

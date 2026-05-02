@@ -469,4 +469,10 @@ contextBridge.exposeInMainWorld('pchelper', {
   getWidgetLayout: () => ipcRenderer.invoke('pchelper:get-widget-layout'),
   saveWidgetLayout: (layout: any) => ipcRenderer.invoke('pchelper:save-widget-layout', layout),
   getWidgetDefaults: () => ipcRenderer.invoke('pchelper:get-widget-defaults'),
+
+  // Privacy Cleanup
+  scanPrivacy: () => ipcRenderer.invoke('pchelper:scan-privacy'),
+  cleanBrowserTrace: (browser: string, traceType: string) => ipcRenderer.invoke('pchelper:clean-browser-trace', browser, traceType),
+  cleanAllPrivacy: () => ipcRenderer.invoke('pchelper:clean-all-privacy'),
+  clearRecentFiles: () => ipcRenderer.invoke('pchelper:clear-recent-files'),
 });

@@ -154,7 +154,7 @@ export interface Alert {
   threshold?: number;
 }
 
-export type NavPage = 'dashboard' | 'repair' | 'overlay' | 'hardware' | 'software' | 'apps' | 'conflicts' | 'updates' | 'alerts' | 'health' | 'aiDiagnostic' | 'ai' | 'settings' | 'startup' | 'network' | 'temperatures' | 'process' | 'system' | 'benchmark' | 'scheduler' | 'firewall' | 'usb' | 'cleanup' | 'security' | 'clipboard' | 'drivers' | 'services' | 'eventlog' | 'battery' | 'perflog' | 'registry' | 'netconn' | 'filetypes' | 'display' | 'power' | 'restore' | 'filescanner' | 'remote' | 'report' | 'memory' | 'features' | 'sounds' | 'fonts' | 'accounts' | 'netdiag' | 'policy' | 'devices' | 'gameOptimizer';
+export type NavPage = 'dashboard' | 'repair' | 'overlay' | 'hardware' | 'software' | 'apps' | 'conflicts' | 'updates' | 'alerts' | 'health' | 'aiDiagnostic' | 'ai' | 'settings' | 'startup' | 'network' | 'temperatures' | 'process' | 'system' | 'benchmark' | 'scheduler' | 'firewall' | 'usb' | 'cleanup' | 'security' | 'clipboard' | 'drivers' | 'services' | 'eventlog' | 'battery' | 'perflog' | 'registry' | 'netconn' | 'filetypes' | 'display' | 'power' | 'restore' | 'filescanner' | 'remote' | 'report' | 'memory' | 'features' | 'sounds' | 'fonts' | 'accounts' | 'netdiag' | 'policy' | 'devices' | 'gameOptimizer' | 'privacy';
 
 export interface StartupEntry {
   name: string;

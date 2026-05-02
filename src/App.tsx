@@ -47,6 +47,7 @@ import NetDiagView from './components/NetDiagView';
 import PolicyView from './components/PolicyView';
 import ExternalDevicesView from './components/ExternalDevicesView';
 import GameOptimizerView from './components/GameOptimizerView';
+import PrivacyCleanup from './components/PrivacyCleanup';
 import RepairCenter from './components/RepairCenter';
 import PerfOverlay from './components/PerfOverlay';
 import TitleBar from './components/TitleBar';
@@ -155,6 +156,8 @@ function MainContent() {
       return <ExternalDevicesView />;
     case 'gameOptimizer':
       return <GameOptimizerView />;
+    case 'privacy':
+      return <PrivacyCleanup />;
     default:
       return <Dashboard />;
   }
