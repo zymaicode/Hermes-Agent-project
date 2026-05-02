@@ -49,6 +49,7 @@ import ExternalDevicesView from './components/ExternalDevicesView';
 import GameOptimizerView from './components/GameOptimizerView';
 import PrivacyCleanup from './components/PrivacyCleanup';
 import RepairCenter from './components/RepairCenter';
+import FileToolsView from './components/FileToolsView';
 import PerfOverlay from './components/PerfOverlay';
 import TitleBar from './components/TitleBar';
 import { useAppStore } from './stores/appStore';
@@ -158,6 +159,8 @@ function MainContent() {
       return <GameOptimizerView />;
     case 'privacy':
       return <PrivacyCleanup />;
+    case 'fileTools':
+      return <FileToolsView />;
     default:
       return <Dashboard />;
   }

@@ -1,0 +1,41 @@
+.filetools-page { height: 100%; overflow-y: auto; }
+.filetools-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.filetools-title { font-size: 20px; font-weight: 600; }
+.filetools-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--card-border); padding-bottom: 0; }
+.filetools-tab { padding: 8px 16px; cursor: pointer; font-size: 13px; border-bottom: 2px solid transparent; transition: all 0.15s; }
+.filetools-tab:hover { color: var(--accent); }
+.filetools-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+
+/* 表格通用 */
+.ft-table { width: 100%; border-collapse: collapse; }
+.ft-table th { text-align: left; font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; padding: 8px 12px; border-bottom: 1px solid var(--card-border); }
+.ft-table td { padding: 8px 12px; font-size: 13px; border-bottom: 1px solid var(--card-border); }
+
+/* 文件大小条 */
+.ft-size-bar { display: flex; align-items: center; gap: 8px; }
+.ft-size-fill { height: 8px; border-radius: 4px; transition: width 0.3s; }
+
+/* 重复组 */
+.ft-dup-group { margin-bottom: 16px; border: 1px solid var(--card-border); border-radius: 8px; overflow: hidden; }
+.ft-dup-header { padding: 10px 14px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+.ft-dup-files { padding: 8px 14px; }
+.ft-dup-file { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 12px; }
+
+/* 批量重命名 */
+.ft-rename-controls { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.ft-rename-rule { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ft-rename-input { padding: 6px 10px; border: 1px solid var(--card-border); border-radius: 4px; background: var(--bg-secondary); color: var(--text-primary); font-size: 13px; }
+.ft-rename-select { padding: 6px 10px; border: 1px solid var(--card-border); border-radius: 4px; background: var(--bg-secondary); color: var(--text-primary); font-size: 13px; }
+
+/* 预览结果 */
+.ft-preview { margin-top: 12px; max-height: 300px; overflow-y: auto; }
+.ft-preview-row { display: flex; align-items: center; gap: 12px; padding: 6px 10px; font-size: 12px; border-bottom: 1px solid var(--card-border); }
+.ft-preview-arrow { color: var(--text-secondary); }
+.ft-preview-valid { color: var(--green); font-size: 11px; }
+.ft-preview-error { color: var(--red); font-size: 11px; }
+
+/* 警告图标 */
+.ft-warning-icon { color: var(--yellow); }
+
+/* 空状态 */
+.ft-empty { text-align: center; padding: 40px; color: var(--text-secondary); }

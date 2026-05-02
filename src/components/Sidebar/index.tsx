@@ -88,6 +88,7 @@ const navSections: { heading: string; items: NavItem[] }[] = [
       { id: 'cleanup', label: 'Cleanup', icon: Trash2 },
       { id: 'filetypes', label: 'File Types', icon: FileType },
       { id: 'netdiag', label: 'Net Diag', icon: Network },
+      { id: 'fileTools', label: 'File Tools', icon: FileText },
       { id: 'gameOptimizer', label: 'Game Mode', icon: Gamepad2 },
     ],
   },

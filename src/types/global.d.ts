@@ -467,6 +467,16 @@ declare global {
       saveWidgetLayout: (layout: WidgetLayout) => Promise<true>;
       getWidgetDefaults: () => Promise<WidgetLayout>;
 
+      // FileTools - Lock Manager
+      getLockedFiles: () => Promise<import('../../electron/filetools/lockManager').LockedFile[]>;
+      unlockFile: (filePath: string) => Promise<{ success: boolean; message: string }>;
+      unlockSelected: (paths: string[]) => Promise<{ unlocked: number; failed: number; errors: string[] }>;
+
+      // FileTools - Batch Rename
+      getRenameFiles: () => Promise<import('../../electron/filetools/batchRename').BatchRenameFile[]>;
+      previewRename: (files: import('../../electron/filetools/batchRename').BatchRenameFile[], rule: import('../../electron/filetools/batchRename').RenameRule) => Promise<import('../../electron/filetools/batchRename').RenamePreview[]>;
+      applyRename: (files: import('../../electron/filetools/batchRename').BatchRenameFile[], rule: import('../../electron/filetools/batchRename').RenameRule) => Promise<{ renamed: number; failed: number; errors: string[] }>;
+
       // Privacy Cleanup
       scanPrivacy: () => Promise<PrivacyScanResult>;
       cleanBrowserTrace: (browser: string, traceType: string) => Promise<{ success: boolean; freedMB: number }>;

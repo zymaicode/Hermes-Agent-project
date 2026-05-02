@@ -72,6 +72,8 @@ import { DnsCacheManager } from './network/dnsCache';
 import { BandwidthTop } from './network/bandwidthTop';
 import { PrivacyScanner } from './privacy/privacyScanner';
 import { saveSpeedTest, getSpeedTestHistory, clearSpeedTestHistory, getSpeedTestStats, getSpeedTestTopResults } from './network/speedTestHistoryBridge';
+import { LockManager } from './filetools/lockManager';
+import { BatchRenamer } from './filetools/batchRename';
 import type { HardwareSnapshot } from './hardware/collector';
 import { initTray, updateTrayStats, showTrayNotification, destroyTray } from './trayManager';
 
@@ -131,6 +133,8 @@ const lanScanner = new LanScanner();
 const dnsCacheManager = new DnsCacheManager();
 const bandwidthTop = new BandwidthTop();
 const privacyScanner = new PrivacyScanner();
+const lockManager = new LockManager();
+const batchRenamer = new BatchRenamer();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -1403,6 +1407,16 @@ function registerIpcHandlers(): void {
     db.prepare('DELETE FROM settings').run();
     return { success: true };
   });
+
+  // FileTools - Lock Manager
+  ipcMain.handle('pchelper:get-locked-files', async () => lockManager.getLockedFiles());
+  ipcMain.handle('pchelper:unlock-file', async (_, filePath: string) => lockManager.unlockFile(filePath));
+  ipcMain.handle('pchelper:unlock-selected', async (_, paths: string[]) => lockManager.unlockSelected(paths));
+
+  // FileTools - Batch Rename
+  ipcMain.handle('pchelper:get-rename-files', async () => batchRenamer.getFiles());
+  ipcMain.handle('pchelper:preview-rename', async (_, files: unknown, rule: unknown) => batchRenamer.previewRename(files as any, rule as any));
+  ipcMain.handle('pchelper:apply-rename', async (_, files: unknown, rule: unknown) => batchRenamer.applyRename(files as any, rule as any));
 
   // Privacy Scanner
   ipcMain.handle('pchelper:scan-privacy', async () => privacyScanner.scan());

@@ -470,6 +470,16 @@ contextBridge.exposeInMainWorld('pchelper', {
   saveWidgetLayout: (layout: any) => ipcRenderer.invoke('pchelper:save-widget-layout', layout),
   getWidgetDefaults: () => ipcRenderer.invoke('pchelper:get-widget-defaults'),
 
+  // FileTools - Lock Manager
+  getLockedFiles: () => ipcRenderer.invoke('pchelper:get-locked-files'),
+  unlockFile: (filePath: string) => ipcRenderer.invoke('pchelper:unlock-file', filePath),
+  unlockSelected: (paths: string[]) => ipcRenderer.invoke('pchelper:unlock-selected', paths),
+
+  // FileTools - Batch Rename
+  getRenameFiles: () => ipcRenderer.invoke('pchelper:get-rename-files'),
+  previewRename: (files: unknown, rule: unknown) => ipcRenderer.invoke('pchelper:preview-rename', files, rule),
+  applyRename: (files: unknown, rule: unknown) => ipcRenderer.invoke('pchelper:apply-rename', files, rule),
+
   // Privacy Cleanup
   scanPrivacy: () => ipcRenderer.invoke('pchelper:scan-privacy'),
   cleanBrowserTrace: (browser: string, traceType: string) => ipcRenderer.invoke('pchelper:clean-browser-trace', browser, traceType),
