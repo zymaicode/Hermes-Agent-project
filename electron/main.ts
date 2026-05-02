@@ -68,8 +68,11 @@ import { getGameConfig, getAllGameConfigs, saveGameConfig, deleteGameConfig } fr
 import { getTheme, saveTheme, getThemeDefaults, getThemeCSSVars } from './theme/index';
 import { getWidgetLayout, saveWidgetLayout, getWidgetDefaults } from './widget/widgetManager';
 import type { HardwareSnapshot } from './hardware/collector';
+import { initTray, updateTrayStats, showTrayNotification, destroyTray } from './trayManager';
 
 let mainWindow: BrowserWindow | null = null;
+let isQuitting = false;
+app.on('before-quit', () => { isQuitting = true; });
 let hardwareCollector: HardwareCollector | null = null;
 const softwareCollector = new SoftwareCollector();
 const conflictDetector = new ConflictDetector();
@@ -153,6 +156,17 @@ function createWindow(): void {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  // System tray
+  initTray(mainWindow);
+
+  // Close → hide to tray instead of quitting
+  mainWindow.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault();
+      mainWindow?.hide();
+    }
+  });
 }
 
 function registerIpcHandlers(): void {
@@ -168,6 +182,14 @@ function registerIpcHandlers(): void {
   });
   ipcMain.handle('pchelper:is-maximized', () => mainWindow?.isMaximized() ?? false);
   ipcMain.handle('pchelper:close-window', () => mainWindow?.close());
+  ipcMain.handle('pchelper:show-window', () => {
+    mainWindow?.show();
+    mainWindow?.focus();
+  });
+  ipcMain.handle('pchelper:hide-window', () => {
+    mainWindow?.hide();
+  });
+  ipcMain.handle('pchelper:is-visible', () => mainWindow?.isVisible() ?? false);
   ipcMain.handle('pchelper:get-app-version', () => app.getVersion());
 
   // AI connection test
@@ -204,6 +226,16 @@ function registerIpcHandlers(): void {
     hardwareCollector?.startPolling((snapshot) => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('pchelper:hardware-update', snapshot);
+      }
+
+      // Update tray statistics
+      updateTrayStats(snapshot.cpu.usage, snapshot.memory.usagePercent);
+
+      // Tray notifications for critical conditions (rate-limited internally)
+      if (snapshot.cpu.temp > 85) {
+        showTrayNotification('CPU 温度过高', `当前温度：${snapshot.cpu.temp.toFixed(0)}°C，建议检查散热`);
+      } else if (snapshot.memory.usagePercent > 90) {
+        showTrayNotification('内存使用率过高', `当前使用率：${snapshot.memory.usagePercent.toFixed(0)}%，建议关闭部分程序`);
       }
 
       // Alert engine: check local rules
@@ -1421,6 +1453,7 @@ app.on('window-all-closed', () => {
   hardwareCollector?.stopPolling();
   overlayCollector.stop();
   overlayManager.destroy();
+  destroyTray();
   if (process.platform !== 'darwin') {
     app.quit();
   }

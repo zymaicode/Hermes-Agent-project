@@ -102,6 +102,9 @@ declare global {
       maximizeWindow: () => Promise<void>;
       isMaximized: () => Promise<boolean>;
       closeWindow: () => Promise<void>;
+      showWindow: () => Promise<void>;
+      hideWindow: () => Promise<void>;
+      isWindowVisible: () => Promise<boolean>;
       openExternal: (url: string) => Promise<void>;
 
       // AI

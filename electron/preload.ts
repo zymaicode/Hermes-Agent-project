@@ -90,6 +90,9 @@ contextBridge.exposeInMainWorld('pchelper', {
   maximizeWindow: () => ipcRenderer.invoke('pchelper:maximize-window'),
   isMaximized: () => ipcRenderer.invoke('pchelper:is-maximized'),
   closeWindow: () => ipcRenderer.invoke('pchelper:close-window'),
+  showWindow: () => ipcRenderer.invoke('pchelper:show-window'),
+  hideWindow: () => ipcRenderer.invoke('pchelper:hide-window'),
+  isWindowVisible: () => ipcRenderer.invoke('pchelper:is-visible'),
   openExternal: (url: string) => ipcRenderer.invoke('pchelper:open-external', url),
 
   // AI

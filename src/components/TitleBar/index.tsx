@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Minus, Square, Copy, X } from 'lucide-react';
+import { Minus, Square, Copy, X, ChevronDown } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import iconUrl from '../../../assets/icon_16x16.png';
 
@@ -47,6 +47,14 @@ export default function TitleBar() {
           aria-label="Minimize"
         >
           <Minus size={14} />
+        </button>
+        <button
+          className="titlebar-btn"
+          onClick={() => window.pchelper.hideWindow()}
+          aria-label="Hide to tray"
+          title="隐藏到托盘"
+        >
+          <ChevronDown size={14} />
         </button>
         <button
           className="titlebar-btn"

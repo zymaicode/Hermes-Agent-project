@@ -1,0 +1,267 @@
+## Phase C3: 系统托盘增强
+
+项目：PCHelper (pc-toolkit) — Windows 系统工具，Electron + React + Vite + TypeScript + Zustand + better-sqlite3 + Recharts + lucide-react
+
+### Task
+
+为 PCHelper 添加完善的系统托盘（Tray）功能，包括右键菜单、最小化到托盘、托盘气球提示、以及实时托盘图标（CPU 占用率低/中/高动态变化）。
+
+### Files to create:
+
+#### 1. `electron/trayManager.ts` — 托盘管理器
+```typescript
+import { Tray, Menu, nativeImage, app, BrowserWindow, Notification } from 'electron';
+import path from 'path';
+
+let tray: Tray | null = null;
+let mainWindow: BrowserWindow | null = null;
+let currentCPU = 0;
+let currentMem = 0;
+
+const iconDir = path.join(__dirname, '../assets');
+
+// 根据 CPU 使用率返回不同的图标路径
+function getCpuIconPath(usage: number): string {
+  const base = path.join(iconDir, 'icon.png');
+  return base; // 使用同一个 icon，通过 setImage 刷新
+}
+
+// 生成图标 overlay 文本（无法直接叠加，用不同图标代替）
+// 使用 icon.png 作为唯一图标，OK
+
+export function initTray(window: BrowserWindow): void {
+  mainWindow = window;
+  const iconPath = path.join(iconDir, 'icon.png');
+  tray = new Tray(iconPath);
+
+  updateTrayMenu();
+
+  tray.setToolTip('PCHelper - 电脑工具箱');
+
+  // 双击托盘图标打开/最小化窗口
+  tray.on('double-click', () => {
+    if (mainWindow) {
+      if (mainWindow.isVisible()) {
+        mainWindow.focus();
+      } else {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    }
+  });
+}
+
+function updateTrayMenu(): void {
+  if (!tray) return;
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: `CPU: ${currentCPU.toFixed(1)}% | Mem: ${currentMem.toFixed(0)}%`,
+      enabled: false,
+    },
+    { type: 'separator' },
+    {
+      label: '打开主窗口',
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+        }
+      },
+    },
+    {
+      label: '最小化到托盘',
+      click: () => {
+        if (mainWindow) {
+          mainWindow.hide();
+        }
+      },
+    },
+    { type: 'separator' },
+    {
+      label: '退出',
+      click: () => {
+        app.quit();
+      },
+    },
+  ]);
+
+  tray.setContextMenu(contextMenu);
+}
+
+export function updateTrayStats(cpu: number, mem: number): void {
+  currentCPU = cpu;
+  currentMem = mem;
+  updateTrayMenu();
+}
+
+export function showTrayNotification(title: string, body: string): void {
+  if (!mainWindow) return;
+  const notification = new Notification({ title, body, icon: path.join(iconDir, 'icon.png') });
+  notification.show();
+  notification.on('click', () => {
+    if (mainWindow) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+}
+
+export function destroyTray(): void {
+  if (tray) {
+    tray.destroy();
+    tray = null;
+  }
+}
+
+export function isTrayInitialized(): boolean {
+  return tray !== null;
+}
+```
+
+#### 2. `electron/notifications/notificationManager.ts` — 系统通知管理器
+```typescript
+import { Notification } from 'electron';
+import path from 'path';
+
+// 队列管理，避免短时间内弹太多通知
+let lastNotificationTime = 0;
+const MIN_INTERVAL_MS = 30000; // 30秒最小间隔
+
+export function sendSystemNotification(title: string, body: string, iconPath?: string): void {
+  const now = Date.now();
+  if (now - lastNotificationTime < MIN_INTERVAL_MS) return;
+  lastNotificationTime = now;
+
+  const notification = new Notification({
+    title,
+    body,
+    icon: iconPath || path.join(__dirname, '../../assets/icon.png'),
+    urgency: 'normal',
+  });
+  notification.show();
+}
+
+// 用于硬件告警的静默通知（不触发弹窗，只更新托盘提示）
+export function silentNotify(title: string, body: string): void {
+  // 由托盘通知统一管理
+}
+```
+
+### Files to create (no separate file — inline):
+
+No separate notification file needed — the `showTrayNotification` in trayManager.ts is sufficient.
+
+### Files to modify:
+
+#### 1. `electron/main.ts` — 集成托盘管理器
+
+1. **导入**：在 import 区域添加
+```typescript
+import { initTray, updateTrayStats, showTrayNotification, destroyTray } from './trayManager';
+```
+
+2. **窗口打开后初始化托盘**：在 `createWindow()` 函数末尾或 `app.whenReady()` 中调用
+在 `createWindow()` 函数的最后，`mainWindow.on('closed', ...)` 之后添加：
+```typescript
+initTray(mainWindow);
+```
+
+3. **窗口关闭改为隐藏到托盘**：修改窗口关闭行为
+在 `createWindow()` 中，window 创建后添加：
+```typescript
+mainWindow.on('close', (event) => {
+  if (!app.isQuitting) {
+    event.preventDefault();
+    mainWindow?.hide();
+  }
+});
+```
+并在 `registerIpcHandlers()` 中添加：
+```typescript
+ipcMain.handle('pchelper:show-window', () => {
+  mainWindow?.show();
+  mainWindow?.focus();
+});
+ipcMain.handle('pchelper:hide-window', () => {
+  mainWindow?.hide();
+});
+ipcMain.handle('pchelper:is-visible', () => mainWindow?.isVisible() ?? false);
+```
+
+4. **修改 window-all-closed 处理**：
+```typescript
+// 全局变量
+let isQuitting = false;
+
+// 在 app 退出前设置标志
+app.on('before-quit', () => { isQuitting = true; });
+
+app.on('window-all-closed', () => {
+  hardwareCollector?.stopPolling();
+  overlayCollector.stop();
+  overlayManager.destroy();
+  destroyTray();
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+```
+
+5. **在硬件轮询回调中添加托盘统计更新**
+在硬件轮询回调 `snapshot` 处理中，添加：
+```typescript
+// 更新托盘统计
+updateTrayStats(snapshot.cpu.usage, snapshot.memory.usagePercent);
+
+// 检查是否需要发送告警通知
+if (snapshot.cpu.temp > 85) {
+  showTrayNotification('CPU 温度过高', `当前温度：${snapshot.cpu.temp.toFixed(0)}°C，建议检查散热`);
+} else if (snapshot.memory.usagePercent > 90) {
+  showTrayNotification('内存使用率过高', `当前使用率：${snapshot.memory.usagePercent.toFixed(0)}%，建议关闭部分程序`);
+}
+```
+
+#### 2. `electron/preload.ts` — 暴露托盘相关 API
+```typescript
+// 在 Window 控制区域添加
+showWindow: () => ipcRenderer.invoke('pchelper:show-window'),
+hideWindow: () => ipcRenderer.invoke('pchelper:hide-window'),
+isWindowVisible: () => ipcRenderer.invoke('pchelper:is-visible'),
+```
+
+#### 3. `src/types/global.d.ts` — 添加 API 声明
+```typescript
+// 在 Window.pchelper interface 末尾添加
+showWindow: () => Promise<void>;
+hideWindow: () => Promise<void>;
+isWindowVisible: () => Promise<boolean>;
+```
+
+#### 4. `src/components/TitleBar/index.tsx` — 添加最小化到托盘按钮
+在最小化按钮旁边（或替代最小化按钮行为），添加一个托盘按钮：
+- 检查是否存在现有的最小化事件监听
+- 在窗口控制按钮区域，修改最小化按钮的 onClick 行为，添加 `window.pchelper.hideWindow()` 作为"最小化到托盘"选项
+
+实际修改：在最小化按钮旁边添加一个下拉箭头，提供两个选项：
+1. 最小化到任务栏（原有行为）
+2. 最小化到系统托盘（调用 `window.pchelper.hideWindow()`）
+
+或者更简单的实现：为最小化按钮添加右键行为，或者添加一个单独的托盘图标按钮。
+
+最简单的方案：在最小化按钮右侧添加一个 **隐藏到托盘** 小按钮（ChevronDown 图标），点击时调用 `window.pchelper.hideWindow()`。
+
+#### 5. `src/components/Dashboard/index.tsx` — 添加托盘开关
+在 Dashboard 顶栏的齿轮按钮旁边，添加一个托盘按钮，用于显示/隐藏托盘状态。或者将托盘功能作为设置项，在 SettingsView 中添加开关。
+
+简单方案：不需要额外 UI 修改 — 最小化按钮行为在 TitleBar 修改即可。
+
+### IMPORTANT:
+- 窗口关闭（X按钮）行为改为"最小化到托盘"而非退出，需要在 app 退出前恢复
+- 双击托盘图标显示窗口
+- 托盘右键菜单显示实时 CPU/Mem 使用率
+- 硬件轮询数据用于更新托盘菜单和弹出高温/高内存通知
+- 通知有 30 秒最小间隔，避免疯狂弹窗
+- After all changes: npx tsc --noEmit (zero errors required)
+- Do NOT run npm install or npm run build
+- Do NOT edit node_modules or .git
