@@ -1,0 +1,327 @@
+## Phase B3: 游戏配置库
+
+Current project: PCHelper (pc-toolkit) — Electron + React + TypeScript + Vite. Game module at electron/game/ with gameDetector.ts, gameOptimizer.ts, fpsRecorder.ts. Overlay at electron/overlay/.
+
+### Task: Add per-game overlay config profiles — each game saves its own overlay display preferences (which metrics to show, position, opacity, color).
+
+### Files to create:
+
+#### 1. `electron/game/gameConfig.ts` — Per-game overlay config management
+```typescript
+import { app } from 'electron';
+import Database from 'better-sqlite3';
+import path from 'path';
+
+export interface GameOverlayConfig {
+  id?: number;
+  gameName: string;
+  showFps: boolean;
+  showCpu: boolean;
+  showGpu: boolean;
+  showRam: boolean;
+  opacity: number;
+  position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  color: string;
+  fontSize: number;
+}
+
+const DEFAULT_CONFIG: Omit<GameOverlayConfig, 'gameName'> = {
+  showFps: true,
+  showCpu: true,
+  showGpu: true,
+  showRam: true,
+  opacity: 0.8,
+  position: 'top-left',
+  color: '#4fc3f7',
+  fontSize: 14,
+};
+
+let db: Database.Database;
+
+function getDb(): Database.Database {
+  if (!db) {
+    const dbPath = path.join(app.getPath('userData'), 'game_configs.db');
+    db = new Database(dbPath);
+    db.pragma('journal_mode = WAL');
+    db.exec(`CREATE TABLE IF NOT EXISTS game_configs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      game_name TEXT UNIQUE NOT NULL,
+      show_fps INTEGER DEFAULT 1,
+      show_cpu INTEGER DEFAULT 1,
+      show_gpu INTEGER DEFAULT 1,
+      show_ram INTEGER DEFAULT 1,
+      opacity REAL DEFAULT 0.8,
+      position TEXT DEFAULT 'top-left',
+      color TEXT DEFAULT '#4fc3f7',
+      font_size INTEGER DEFAULT 14
+    )`);
+  }
+  return db;
+}
+
+export function getGameConfig(gameName: string): GameOverlayConfig {
+  const database = getDb();
+  const row = database.prepare('SELECT * FROM game_configs WHERE game_name = ?').get(gameName) as any;
+  if (!row) {
+    return { gameName, ...DEFAULT_CONFIG };
+  }
+  return rowToConfig(row);
+}
+
+export function getAllGameConfigs(): GameOverlayConfig[] {
+  const database = getDb();
+  const rows = database.prepare('SELECT * FROM game_configs ORDER BY game_name').all() as any[];
+  return rows.map(rowToConfig);
+}
+
+export function saveGameConfig(config: GameOverlayConfig): void {
+  const database = getDb();
+  database.prepare(`INSERT INTO game_configs (game_name, show_fps, show_cpu, show_gpu, show_ram, opacity, position, color, font_size)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(game_name) DO UPDATE SET
+      show_fps=excluded.show_fps, show_cpu=excluded.show_cpu, show_gpu=excluded.show_gpu,
+      show_ram=excluded.show_ram, opacity=excluded.opacity, position=excluded.position,
+      color=excluded.color, font_size=excluded.font_size
+  `).run(
+    config.gameName,
+    config.showFps ? 1 : 0,
+    config.showCpu ? 1 : 0,
+    config.showGpu ? 1 : 0,
+    config.showRam ? 1 : 0,
+    config.opacity,
+    config.position,
+    config.color,
+    config.fontSize,
+  );
+}
+
+export function deleteGameConfig(gameName: string): void {
+  const database = getDb();
+  database.prepare('DELETE FROM game_configs WHERE game_name = ?').run(gameName);
+}
+
+function rowToConfig(row: any): GameOverlayConfig {
+  return {
+    id: row.id,
+    gameName: row.game_name,
+    showFps: row.show_fps === 1,
+    showCpu: row.show_cpu === 1,
+    showGpu: row.show_gpu === 1,
+    showRam: row.show_ram === 1,
+    opacity: row.opacity,
+    position: row.position,
+    color: row.color,
+    fontSize: row.font_size,
+  };
+}
+```
+
+#### 2. Create `electron/game/gameConfigBridge.ts` — IPC bridge
+```typescript
+export { getGameConfig, getAllGameConfigs, saveGameConfig, deleteGameConfig } from './gameConfig';
+export type { GameOverlayConfig } from './gameConfig';
+```
+
+#### 3. Modify `electron/game/index.ts` — Add exports
+```typescript
+export type { GameOverlayConfig } from './gameConfig';
+export { getGameConfig, getAllGameConfigs, saveGameConfig, deleteGameConfig } from './gameConfig';
+```
+
+### Files to modify:
+
+#### 4. Modify `electron/main.ts` — Add IPC handlers
+Add imports:
+```typescript
+import { getGameConfig, getAllGameConfigs, saveGameConfig, deleteGameConfig } from './game/gameConfig';
+```
+
+Add IPC handlers:
+```typescript
+ipcMain.handle('pchelper:get-game-config', (_event, gameName: string) => getGameConfig(gameName));
+ipcMain.handle('pchelper:get-all-game-configs', () => getAllGameConfigs());
+ipcMain.handle('pchelper:save-game-config', (_event, config: any) => { saveGameConfig(config); return true; });
+ipcMain.handle('pchelper:delete-game-config', (_event, gameName: string) => { deleteGameConfig(gameName); return true; });
+```
+
+#### 5. Modify `electron/preload.ts` — Expose channels
+```typescript
+  getGameConfig: (gameName: string) => ipcRenderer.invoke('pchelper:get-game-config', gameName),
+  getAllGameConfigs: () => ipcRenderer.invoke('pchelper:get-all-game-configs'),
+  saveGameConfig: (config: any) => ipcRenderer.invoke('pchelper:save-game-config', config),
+  deleteGameConfig: (gameName: string) => ipcRenderer.invoke('pchelper:delete-game-config', gameName),
+```
+
+#### 6. Create `src/stores/gameConfigStore.ts` — Zustand store
+```typescript
+import { create } from 'zustand';
+import type { GameOverlayConfig } from '../../electron/game/gameConfig';
+
+interface GameConfigState {
+  configs: GameOverlayConfig[];
+  currentGame: string | null;
+  editingConfig: GameOverlayConfig | null;
+  loadConfigs: () => Promise<void>;
+  loadGameConfig: (gameName: string) => Promise<void>;
+  saveConfig: (config: GameOverlayConfig) => Promise<void>;
+  deleteConfig: (gameName: string) => Promise<void>;
+  setEditingConfig: (config: GameOverlayConfig | null) => void;
+}
+
+export const useGameConfigStore = create<GameConfigState>((set) => ({
+  configs: [],
+  currentGame: null,
+  editingConfig: null,
+
+  loadConfigs: async () => {
+    const configs = await (window as any).pchelper.getAllGameConfigs();
+    set({ configs: configs || [] });
+  },
+
+  loadGameConfig: async (gameName: string) => {
+    const config = await (window as any).pchelper.getGameConfig(gameName);
+    set({ currentGame: gameName, editingConfig: config });
+  },
+
+  saveConfig: async (config: GameOverlayConfig) => {
+    await (window as any).pchelper.saveGameConfig(config);
+    const configs = await (window as any).pchelper.getAllGameConfigs();
+    set({ configs: configs || [] });
+  },
+
+  deleteConfig: async (gameName: string) => {
+    await (window as any).pchelper.deleteGameConfig(gameName);
+    const configs = await (window as any).pchelper.getAllGameConfigs();
+    set({ configs: configs || [] });
+  },
+
+  setEditingConfig: (config) => set({ editingConfig: config }),
+}));
+```
+
+#### 7. Create `src/components/GameOptimizerView/GameConfigEditor.tsx` — Config edit UI
+```tsx
+import { useState, useEffect } from 'react';
+import { Save, Trash2, Plus } from 'lucide-react';
+import { useGameConfigStore } from '../../stores/gameConfigStore';
+import type { GameOverlayConfig } from '../../../electron/game/gameConfig';
+
+const POSITIONS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const;
+
+export default function GameConfigEditor() {
+  const { configs, editingConfig, loadConfigs, saveConfig, deleteConfig, setEditingConfig } = useGameConfigStore();
+  const [newGameName, setNewGameName] = useState('');
+
+  useEffect(() => { loadConfigs(); }, [loadConfigs]);
+
+  const handleSave = async () => {
+    if (!editingConfig) return;
+    await saveConfig(editingConfig);
+    setEditingConfig(null);
+  };
+
+  const handleDelete = async (name: string) => {
+    await deleteConfig(name);
+    if (editingConfig?.gameName === name) setEditingConfig(null);
+  };
+
+  const createNew = () => {
+    if (!newGameName.trim()) return;
+    setEditingConfig({
+      gameName: newGameName.trim(),
+      showFps: true, showCpu: true, showGpu: true, showRam: true,
+      opacity: 0.8, position: 'top-left', color: '#4fc3f7', fontSize: 14,
+    });
+    setNewGameName('');
+  };
+
+  return (
+    <div>
+      <h3 style={{ margin: '0 0 12px', fontSize: 15 }}>Overlay 配置库</h3>
+
+      {/* Add new */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <input
+          value={newGameName}
+          onChange={(e) => setNewGameName(e.target.value)}
+          placeholder="输入游戏名称添加配置..."
+          style={{ flex: 1, padding: '6px 10px', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 13, fontFamily: 'inherit' }}
+          onKeyDown={(e) => e.key === 'Enter' && createNew()}
+        />
+        <button className="btn btn-secondary" onClick={createNew} style={{ padding: '4px 10px', fontSize: 12 }}>
+          <Plus size={12} /> 添加
+        </button>
+      </div>
+
+      {/* Config list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+        {configs.length === 0 && <p style={{ color: 'var(--text-tertiary)', fontSize: 12, textAlign: 'center', padding: 16 }}>暂无自定义配置</p>}
+        {configs.map((cfg) => (
+          <div key={cfg.gameName} className="go-game-item" style={{ padding: '8px 12px' }}>
+            <span style={{ flex: 1, fontSize: 13 }}>{cfg.gameName}</span>
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)', marginRight: 8 }}>
+              {cfg.showFps ? 'FPS ' : ''}{cfg.showCpu ? 'CPU ' : ''}{cfg.showGpu ? 'GPU ' : ''}{cfg.showRam ? 'RAM' : ''}
+            </span>
+            <button onClick={() => setEditingConfig(cfg)} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, padding: '2px 6px' }}>编辑</button>
+            <button onClick={() => handleDelete(cfg.gameName)} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 12, padding: '2px 6px' }}><Trash2 size={12} /></button>
+          </div>
+        ))}
+      </div>
+
+      {/* Editor */}
+      {editingConfig && (
+        <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius)', padding: 16 }}>
+          <h4 style={{ margin: '0 0 12px', fontSize: 14 }}>{editingConfig.gameName} 配置</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {(['showFps', 'showCpu', 'showGpu', 'showRam'] as const).map((key) => (
+              <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+                <input type="checkbox" checked={editingConfig[key]} onChange={() => setEditingConfig({ ...editingConfig, [key]: !editingConfig[key] })} />
+                {{ showFps: '显示 FPS', showCpu: '显示 CPU', showGpu: '显示 GPU', showRam: '显示 内存' }[key]}
+              </label>
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-secondary)' }}>不透明度: {Math.round(editingConfig.opacity * 100)}%</label>
+              <input type="range" min="0.1" max="1" step="0.1" value={editingConfig.opacity} onChange={(e) => setEditingConfig({ ...editingConfig, opacity: parseFloat(e.target.value) })} style={{ width: '100%' }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-secondary)' }}>位置</label>
+              <select value={editingConfig.position} onChange={(e) => setEditingConfig({ ...editingConfig, position: e.target.value as any })} style={{ width: '100%', padding: '4px 8px', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)', background: 'var(--bg)', color: 'var(--text-primary)', fontSize: 12 }}>
+                {POSITIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-secondary)' }}>颜色</label>
+              <input type="color" value={editingConfig.color} onChange={(e) => setEditingConfig({ ...editingConfig, color: e.target.value })} style={{ width: '100%', height: 28 }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, color: 'var(--text-secondary)' }}>字号: {editingConfig.fontSize}px</label>
+              <input type="range" min="10" max="24" value={editingConfig.fontSize} onChange={(e) => setEditingConfig({ ...editingConfig, fontSize: parseInt(e.target.value) })} style={{ width: '100%' }} />
+            </div>
+          </div>
+          <button className="btn btn-primary" onClick={handleSave} style={{ marginTop: 12, padding: '6px 16px', fontSize: 13 }}>
+            <Save size={14} /> 保存配置
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+#### 8. Modify `src/components/GameOptimizerView/index.tsx` — Add config tab
+Add import:
+```typescript
+import GameConfigEditor from './GameConfigEditor';
+```
+
+Add below FPSHistoryView or as a tab alongside it:
+```tsx
+<GameConfigEditor />
+```
+
+### IMPORTANT:
+- Uses better-sqlite3 (already installed)
+- After all changes: `npx tsc --noEmit` (zero errors required)
+- Do NOT run npm install

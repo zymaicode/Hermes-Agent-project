@@ -440,4 +440,10 @@ contextBridge.exposeInMainWorld('pchelper', {
   fpsGetHistory: (limit?: number) => ipcRenderer.invoke('pchelper:fps-get-history', limit),
   fpsGetSession: (sessionId: number) => ipcRenderer.invoke('pchelper:fps-get-session', sessionId),
   fpsClearHistory: () => ipcRenderer.invoke('pchelper:fps-clear-history'),
+
+  // Game Config (per-game overlay profiles)
+  getGameConfig: (gameName: string) => ipcRenderer.invoke('pchelper:get-game-config', gameName),
+  getAllGameConfigs: () => ipcRenderer.invoke('pchelper:get-all-game-configs'),
+  saveGameConfig: (config: any) => ipcRenderer.invoke('pchelper:save-game-config', config),
+  deleteGameConfig: (gameName: string) => ipcRenderer.invoke('pchelper:delete-game-config', gameName),
 });

@@ -64,6 +64,7 @@ import { analyzeProcess } from './ai/behaviorBridge';
 import { detectGames } from './game/gameDetector';
 import { optimizeForGaming, restoreAfterGaming, getActiveOptimization } from './game/gameOptimizer';
 import { startRecording as fpsStartRecording, stopRecording as fpsStopRecording, getFpsHistory, getSessionDetail, clearFpsHistory } from './game/fpsRecorder';
+import { getGameConfig, getAllGameConfigs, saveGameConfig, deleteGameConfig } from './game/gameConfig';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -1378,6 +1379,12 @@ function registerIpcHandlers(): void {
   ipcMain.handle('pchelper:get-optimization-status', () => {
     return getActiveOptimization();
   });
+
+  // Game Config (per-game overlay profiles)
+  ipcMain.handle('pchelper:get-game-config', (_event, gameName: string) => getGameConfig(gameName));
+  ipcMain.handle('pchelper:get-all-game-configs', () => getAllGameConfigs());
+  ipcMain.handle('pchelper:save-game-config', (_event, config: any) => { saveGameConfig(config); return true; });
+  ipcMain.handle('pchelper:delete-game-config', (_event, gameName: string) => { deleteGameConfig(gameName); return true; });
 
   // External links
   ipcMain.handle('pchelper:open-external', (_event, url: string) => {

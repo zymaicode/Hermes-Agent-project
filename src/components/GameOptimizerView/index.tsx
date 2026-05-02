@@ -3,6 +3,7 @@ import { useGameOptimizerStore } from '../../stores/gameOptimizerStore';
 import type { OptimizationStatus } from '../../../electron/game/types';
 import { Zap, RotateCcw, CheckCircle, List, Loader2, Gamepad2 } from 'lucide-react';
 import FPSHistoryView from './FPSHistoryView';
+import GameConfigEditor from './GameConfigEditor';
 import './GameOptimizer.css';
 
 const STATUS_LABELS: Record<OptimizationStatus, string> = {
@@ -104,6 +105,10 @@ export default function GameOptimizerView() {
       </div>
 
       <FPSHistoryView />
+
+      <div className="go-section">
+        <GameConfigEditor />
+      </div>
     </div>
   );
 }
