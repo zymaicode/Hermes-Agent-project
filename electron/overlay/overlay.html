@@ -68,6 +68,7 @@
   .warning .bar { background: var(--yellow); }
   .danger .bar { background: var(--red); }
 </style>
+<link rel="stylesheet" href="overlay-ai.css">
 </head>
 <body>
 <div id="overlay">
@@ -98,6 +99,12 @@
     <span class="val" id="net-val">0/0 MB/s</span>
   </div>
 </div>
+<div id="ai-bar" class="overlay-ai-bar" style="display:none;">
+  <input id="ai-input" type="text" placeholder="问关于系统的问题...">
+  <span id="ai-send" style="color:#4fc3f7;cursor:pointer;font-size:13px;">发送</span>
+  <button class="overlay-ai-close" id="ai-close">&times;</button>
+</div>
+<div id="ai-result" class="overlay-ai-result" style="display:none;"></div>
 <script>
   (function() {
     var ipc = null;
@@ -205,5 +212,6 @@
     }
   })();
 </script>
+<script src="overlay-ai.js"></script>
 </body>
 </html>

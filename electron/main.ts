@@ -48,6 +48,7 @@ import { BluescreenAnalyzer } from './repair/bluescreen';
 import { runSfcScan, runDismRestore } from './repair/sfc';
 import { OverlayManager } from './overlay/overlayManager';
 import { OverlayDataCollector } from './overlay/dataCollector';
+import { handleOverlayAiQuery } from './overlay/aiQuery';
 import { UserManager } from './accounts/userManager';
 import { UacManager } from './accounts/uacManager';
 import { CredentialManager } from './accounts/credentialManager';
@@ -1205,6 +1206,19 @@ function registerIpcHandlers(): void {
   ipcMain.handle('pchelper:overlay-get-metrics', () =>
     overlayManager.getMetrics()
   );
+
+  // Overlay AI query
+  ipcMain.handle('pchelper:overlay-ai-query', async (_event, query: string) => {
+    const snapshot = hardwareCollector?.getSnapshot();
+    if (!snapshot) {
+      return { answer: '❌ 硬件数据未就绪', error: 'no_hardware_data' };
+    }
+    return handleOverlayAiQuery(query, snapshot, {
+      endpoint: getSetting('ai_endpoint') || 'https://api.deepseek.com',
+      model: getSetting('ai_model') || 'deepseek-chat',
+      apiKey: getSetting('ai_api_key') || '',
+    });
+  });
 
   // User Accounts
   ipcMain.handle('pchelper:accounts-list-users', () =>

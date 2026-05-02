@@ -1,4 +1,4 @@
-import { BrowserWindow, screen } from 'electron';
+import { BrowserWindow, screen, globalShortcut } from 'electron';
 import path from 'path';
 import type { OverlayMetrics } from './dataCollector';
 
@@ -42,6 +42,7 @@ export class OverlayManager {
   private overlayWindow: BrowserWindow | null = null;
   private config: OverlayWinConfig = { ...DEFAULT_CONFIG };
   private currentMetrics: OverlayMetrics | null = null;
+  private shortcutRegistered = false;
 
   getConfig(): OverlayWinConfig {
     return { ...this.config };
@@ -79,6 +80,7 @@ export class OverlayManager {
   }
 
   destroy(): void {
+    this.unregisterAiShortcut();
     if (this.overlayWindow) {
       this.overlayWindow.close();
       this.overlayWindow = null;
@@ -109,6 +111,7 @@ export class OverlayManager {
         contextIsolation: true,
         nodeIntegration: false,
         sandbox: false,
+        preload: path.join(__dirname, 'overlay-preload.js'),
       },
     });
 
@@ -125,11 +128,13 @@ export class OverlayManager {
         if (this.currentMetrics) {
           this.pushMetrics(this.currentMetrics);
         }
+        this.registerAiShortcut();
       }
     });
 
     this.overlayWindow.on('closed', () => {
       this.overlayWindow = null;
+      this.unregisterAiShortcut();
     });
   }
 
@@ -209,5 +214,32 @@ export class OverlayManager {
     this.overlayWindow.webContents.executeJavaScript(
       `window.updateOverlay(${JSON.stringify(payload)});`
     ).catch(() => {});
+  }
+
+  private registerAiShortcut(): void {
+    if (this.shortcutRegistered) {
+      globalShortcut.unregister('CommandOrControl+Shift+A');
+    }
+    try {
+      globalShortcut.register('CommandOrControl+Shift+A', () => {
+        if (this.isActive) {
+          this.overlayWindow?.webContents.send('toggle-ai');
+        }
+      });
+      this.shortcutRegistered = true;
+    } catch {
+      // Shortcut registration may fail on some systems
+    }
+  }
+
+  private unregisterAiShortcut(): void {
+    if (this.shortcutRegistered) {
+      try {
+        globalShortcut.unregister('CommandOrControl+Shift+A');
+      } catch {
+        // Ignore unregister errors
+      }
+      this.shortcutRegistered = false;
+    }
   }
 }

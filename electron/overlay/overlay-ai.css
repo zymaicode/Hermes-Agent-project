@@ -1,0 +1,58 @@
+.overlay-ai-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.85);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 999;
+  backdrop-filter: blur(8px);
+}
+.overlay-ai-bar input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: #fff;
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+}
+.overlay-ai-bar input::placeholder { color: rgba(255, 255, 255, 0.4); }
+.overlay-ai-bar input:focus { border-color: #4fc3f7; }
+.overlay-ai-result {
+  position: absolute;
+  bottom: 44px;
+  left: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #e0e0e0;
+  font-size: 12px;
+  line-height: 1.5;
+  max-height: 120px;
+  overflow-y: auto;
+  backdrop-filter: blur(8px);
+  z-index: 998;
+}
+.overlay-ai-result .ai-loading {
+  color: #888;
+  font-style: italic;
+}
+.overlay-ai-close {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.overlay-ai-close:hover { color: #fff; background: rgba(255,255,255,0.1); }
