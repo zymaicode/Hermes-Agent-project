@@ -37,12 +37,12 @@ export default function AIDiagnosticView() {
   };
 
   const StatusIcon = ({ status }: { status: string }) => {
-    switch (status) {
-      case 'ok': return <CheckCircle size={16} style={{ color: 'var(--green)', flexShrink: 0 }} />;
-      case 'warning': return <AlertTriangle size={16} style={{ color: 'var(--yellow)', flexShrink: 0 }} />;
-      case 'error': return <XCircle size={16} style={{ color: 'var(--red)', flexShrink: 0 }} />;
-      default: return null;
-    }
+    const icons: Record<string, React.ReactNode> = {
+      ok: <CheckCircle size={16} style={{ color: 'var(--green)', flexShrink: 0 }} />,
+      warning: <AlertTriangle size={16} style={{ color: 'var(--yellow)', flexShrink: 0 }} />,
+      error: <XCircle size={16} style={{ color: 'var(--red)', flexShrink: 0 }} />,
+    };
+    return icons[status] || null;
   };
 
   if (loading) {

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useGameOptimizerStore } from '../../stores/gameOptimizerStore';
 import type { OptimizationStatus } from '../../../electron/game/types';
 import { Zap, RotateCcw, CheckCircle, List, Loader2, Gamepad2 } from 'lucide-react';
+import FPSHistoryView from './FPSHistoryView';
 import './GameOptimizer.css';
 
 const STATUS_LABELS: Record<OptimizationStatus, string> = {
@@ -101,6 +102,8 @@ export default function GameOptimizerView() {
           <li>游戏退出后自动恢复所有设置</li>
         </ul>
       </div>
+
+      <FPSHistoryView />
     </div>
   );
 }

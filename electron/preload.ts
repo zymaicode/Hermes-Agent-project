@@ -433,4 +433,11 @@ contextBridge.exposeInMainWorld('pchelper', {
   optimizeForGaming: () => ipcRenderer.invoke('pchelper:optimize-for-gaming'),
   restoreGaming: () => ipcRenderer.invoke('pchelper:restore-gaming'),
   getOptimizationStatus: () => ipcRenderer.invoke('pchelper:get-optimization-status'),
+
+  // FPS History
+  fpsStartRecording: (gameName: string) => ipcRenderer.invoke('pchelper:fps-start-recording', gameName),
+  fpsStopRecording: () => ipcRenderer.invoke('pchelper:fps-stop-recording'),
+  fpsGetHistory: (limit?: number) => ipcRenderer.invoke('pchelper:fps-get-history', limit),
+  fpsGetSession: (sessionId: number) => ipcRenderer.invoke('pchelper:fps-get-session', sessionId),
+  fpsClearHistory: () => ipcRenderer.invoke('pchelper:fps-clear-history'),
 });

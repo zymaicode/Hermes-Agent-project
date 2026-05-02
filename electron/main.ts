@@ -63,6 +63,7 @@ import { getDiagnosticEngine, resetDiagnosticEngine } from './ai/aiProvider';
 import { analyzeProcess } from './ai/behaviorBridge';
 import { detectGames } from './game/gameDetector';
 import { optimizeForGaming, restoreAfterGaming, getActiveOptimization } from './game/gameOptimizer';
+import { startRecording as fpsStartRecording, stopRecording as fpsStopRecording, getFpsHistory, getSessionDetail, clearFpsHistory } from './game/fpsRecorder';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -1338,6 +1339,25 @@ function registerIpcHandlers(): void {
     db.prepare('DELETE FROM update_history').run();
     db.prepare('DELETE FROM settings').run();
     return { success: true };
+  });
+
+  // FPS History
+  ipcMain.handle('pchelper:fps-start-recording', (_event, gameName: string) => {
+    fpsStartRecording(gameName);
+    return true;
+  });
+  ipcMain.handle('pchelper:fps-stop-recording', () => {
+    return fpsStopRecording();
+  });
+  ipcMain.handle('pchelper:fps-get-history', (_event, limit?: number) => {
+    return getFpsHistory(limit);
+  });
+  ipcMain.handle('pchelper:fps-get-session', (_event, sessionId: number) => {
+    return getSessionDetail(sessionId);
+  });
+  ipcMain.handle('pchelper:fps-clear-history', () => {
+    clearFpsHistory();
+    return true;
   });
 
   // Game Optimizer

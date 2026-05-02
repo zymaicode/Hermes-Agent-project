@@ -1,22 +1,24 @@
 import type { AiConfig, AiDiagnosticReport, AiDiagnosticSection } from './types';
 import type { HardwareSnapshot } from '../hardware/collector';
+import { callAiApi, extractJson } from './apiClient';
 
 export class AiDiagnosticEngine {
   constructor(private config: AiConfig) {}
 
   async runFullDiagnostic(snapshot: HardwareSnapshot): Promise<AiDiagnosticReport> {
-    const prompt = this.buildDiagnosticPrompt(snapshot);
-
     if (!this.config.apiKey) {
       return this.fallbackDiagnostic(snapshot);
     }
 
-    try {
-      const response = await this.callAi(prompt);
-      return this.parseResponse(response, snapshot);
-    } catch {
+    const prompt = this.buildDiagnosticPrompt(snapshot);
+    const res = await callAiApi(this.config, [{ role: 'user', content: prompt }], 2048, '你是一个专业的PC诊断专家。只输出JSON，不要有任何其他文字。');
+
+    if (res.error || !res.content) {
       return this.fallbackDiagnostic(snapshot);
     }
+
+    const parsed = extractJson<AiDiagnosticReport>(res.content);
+    return parsed || this.fallbackDiagnostic(snapshot);
   }
 
   private buildDiagnosticPrompt(snapshot: HardwareSnapshot): string {
@@ -45,44 +47,6 @@ ${JSON.stringify(snapshot, null, 2)}
     }
   ]
 }`;
-  }
-
-  private async callAi(prompt: string): Promise<string> {
-    const url = `${this.config.endpoint}/v1/chat/completions`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.config.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: this.config.model,
-        messages: [
-          { role: 'system', content: '你是一个专业的PC诊断专家。只输出JSON，不要有任何其他文字。' },
-          { role: 'user', content: prompt },
-        ],
-        max_tokens: 2048,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`AI API error: ${response.status}`);
-    }
-
-    const data = await response.json() as { choices: Array<{ message: { content: string } }> };
-    return data.choices[0]?.message?.content || '';
-  }
-
-  private parseResponse(text: string, snapshot: HardwareSnapshot): AiDiagnosticReport {
-    try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]) as AiDiagnosticReport;
-      }
-    } catch {
-      // fallback
-    }
-    return this.fallbackDiagnostic(snapshot);
   }
 
   private fallbackDiagnostic(snapshot: HardwareSnapshot): AiDiagnosticReport {
