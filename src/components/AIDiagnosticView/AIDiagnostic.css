@@ -1,0 +1,261 @@
+.ai-diagnostic {
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.ai-diagnostic-header {
+  margin-bottom: 24px;
+}
+
+.ai-diagnostic-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 4px;
+  color: var(--text-primary);
+}
+
+.ai-diagnostic-header .subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.ai-diagnostic-loading,
+.ai-diagnostic-error,
+.ai-diagnostic-start {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.ai-diagnostic-loading p,
+.ai-diagnostic-error p,
+.ai-diagnostic-start p {
+  margin: 8px 0 0;
+  font-size: 15px;
+}
+
+.loading-sub,
+.hint {
+  font-size: 12px !important;
+  color: var(--text-tertiary);
+  margin-top: 4px !important;
+}
+
+.error-detail {
+  font-size: 12px;
+  color: var(--red);
+  background: var(--bg-hover);
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  margin: 8px 0 16px;
+  max-width: 400px;
+  word-break: break-all;
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.score-section {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  margin-bottom: 20px;
+}
+
+.score-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 4px solid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.score-value {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.score-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.score-info {
+  flex: 1;
+}
+
+.grade-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.score-info .summary {
+  font-size: 14px;
+  color: var(--text-primary);
+  margin: 4px 0;
+}
+
+.timestamp {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin: 4px 0 0;
+}
+
+.sections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  transition: background 0.15s;
+}
+
+.section-header:hover {
+  background: var(--bg-hover);
+}
+
+.section-indicator {
+  width: 4px;
+  height: 20px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.section-title {
+  font-weight: 500;
+  flex: 1;
+  text-align: left;
+}
+
+.section-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  background: var(--bg-hover);
+  border-radius: 8px;
+}
+
+.section-body {
+  padding: 0 16px 12px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-hover);
+  border-radius: var(--radius);
+}
+
+.item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.item-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.item-detail {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.item-suggestion {
+  font-size: 11px;
+  color: var(--accent);
+  margin-top: 2px;
+}
+
+.rerun-section {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background: var(--border-color);
+}
+
+.btn-lg {
+  padding: 12px 32px;
+  font-size: 15px;
+}

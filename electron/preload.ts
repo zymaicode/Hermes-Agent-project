@@ -68,6 +68,8 @@ contextBridge.exposeInMainWorld('pchelper', {
   getAlertHistory: (limit?: number) =>
     ipcRenderer.invoke('pchelper:get-alert-history', limit),
   runAiAnalysis: () => ipcRenderer.invoke('pchelper:run-ai-analysis'),
+  runAiDiagnostic: () => ipcRenderer.invoke('pchelper:run-ai-diagnostic'),
+  resetAiEngine: () => ipcRenderer.invoke('pchelper:reset-ai-engine'),
   onAlertUpdate: (callback: (data: unknown) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, data: unknown) =>
       callback(data);

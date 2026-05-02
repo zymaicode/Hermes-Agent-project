@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Bell,
   Heart,
+  HeartPulse,
   MessageSquare,
   Settings,
   RefreshCw,
@@ -121,6 +122,7 @@ const navSections: { heading: string; items: NavItem[] }[] = [
     heading: 'Data',
     items: [
       { id: 'health', label: 'Health', icon: Heart },
+      { id: 'aiDiagnostic', label: 'AI 体检', icon: HeartPulse },
       { id: 'alerts', label: 'Alerts', icon: Bell },
       { id: 'conflicts', label: 'Conflicts', icon: AlertTriangle },
       { id: 'battery', label: 'Battery', icon: Battery },

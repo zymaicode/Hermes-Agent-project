@@ -10,6 +10,7 @@ import AlertHistoryView from './components/AlertHistoryView';
 import HealthView from './components/HealthView';
 import AlertModal from './components/AlertModal';
 import AIChatPanel from './components/AIChatPanel';
+import AIDiagnosticView from './components/AIDiagnosticView';
 import SettingsView from './components/SettingsView';
 import StartupView from './components/StartupView';
 import NetworkView from './components/NetworkView';
@@ -75,6 +76,8 @@ function MainContent() {
       return <AlertHistoryView />;
     case 'health':
       return <HealthView />;
+    case 'aiDiagnostic':
+      return <AIDiagnosticView />;
     case 'ai':
       return <AIChatPanel standalone />;
     case 'settings':

@@ -1,0 +1,792 @@
+## Phase A1: AI 一键系统体检
+
+Current project: PCHelper (pc-toolkit) v1.0-beta — Electron + React + TypeScript + Vite project at /home/ubuntu/workspace/pc-toolkit. All Phase 1-12 completed, 215 source files, ~48,000 lines. TypeScript zero errors. Uses Zustand for state, lucide-react for icons, Recharts for charts, better-sqlite3 for DB.
+
+### Task: Add "AI System Diagnostic" feature — one-click health check that collects system data, sends to DeepSeek AI, and generates a comprehensive diagnostic report.
+
+### Files to create:
+
+#### 1. `electron/ai/types.ts` — AI module shared types
+```typescript
+export interface AiConfig {
+  endpoint: string;
+  model: string;
+  apiKey: string;
+}
+
+export interface AiDiagnosticReport {
+  score: number;
+  grade: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
+  summary: string;
+  sections: AiDiagnosticSection[];
+  timestamp: number;
+}
+
+export interface AiDiagnosticSection {
+  title: string;
+  severity: 'good' | 'warning' | 'critical';
+  items: AiDiagnosticItem[];
+}
+
+export interface AiDiagnosticItem {
+  label: string;
+  status: 'ok' | 'warning' | 'error';
+  detail: string;
+  suggestion?: string;
+}
+```
+
+#### 2. `electron/ai/diagnostic.ts` — Diagnostic engine that collects system data and queries AI
+```typescript
+import { ipcMain } from 'electron';
+import { hardwareCollector } from '../hardware/collector';
+import { healthScorer } from '../health/scorer';
+import type { AiConfig, AiDiagnosticReport, AiDiagnosticSection, AiDiagnosticItem } from './types';
+
+export class AiDiagnosticEngine {
+  constructor(private config: AiConfig) {}
+
+  async runFullDiagnostic(): Promise<AiDiagnosticReport> {
+    const systemSnapshot = await this.collectSystemSnapshot();
+    const prompt = this.buildDiagnosticPrompt(systemSnapshot);
+    
+    if (!this.config.apiKey) {
+      return this.fallbackDiagnostic(systemSnapshot);
+    }
+
+    try {
+      const response = await this.callAi(prompt);
+      return this.parseResponse(response, systemSnapshot);
+    } catch {
+      return this.fallbackDiagnostic(systemSnapshot);
+    }
+  }
+
+  private async collectSystemSnapshot(): Promise<Record<string, unknown>> {
+    const collector = hardwareCollector;
+    // Collect hardware data
+    const snapshot = await collector.getFullSnapshot();
+    
+    // Get health score
+    const health = await healthScorer.getScore();
+    
+    // Try to get installed apps count and disk info
+    let appCount = 0;
+    try {
+      const { getInstalledApps } = require('../software/collecter');
+      const apps = getInstalledApps();
+      appCount = apps.length;
+    } catch {}
+
+    return {
+      cpu: snapshot.cpu,
+      memory: snapshot.memory,
+      gpu: snapshot.gpu,
+      disks: snapshot.disks,
+      motherboard: snapshot.motherboard,
+      healthScore: health?.total ?? 0,
+      healthGrade: health?.grade ?? 'unknown',
+      appCount,
+    };
+  }
+
+  private buildDiagnosticPrompt(data: Record<string, unknown>): string {
+    return `你是一位专业的PC健康诊断专家。请基于以下系统数据，给出全面的系统健康评估报告。
+
+系统数据：
+${JSON.stringify(data, null, 2)}
+
+请按以下JSON格式回复（不要加额外的文本或markdown）：
+{
+  "score": <0-100的数字>,
+  "grade": <"excellent"|"good"|"fair"|"poor"|"critical">,
+  "summary": "<一句话总结系统状态>",
+  "sections": [
+    {
+      "title": "<分类标题，如CPU、内存、磁盘、GPU>",
+      "severity": <"good"|"warning"|"critical">,
+      "items": [
+        {
+          "label": "<指标名称>",
+          "status": <"ok"|"warning"|"error">,
+          "detail": "<具体数据描述>",
+          "suggestion": "<优化建议，可选>"
+        }
+      ]
+    }
+  ]
+}`;
+  }
+
+  private async callAi(prompt: string): Promise<string> {
+    const url = `${this.config.endpoint}/v1/chat/completions`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: this.config.model,
+        messages: [
+          { role: 'system', content: '你是一个专业的PC诊断专家。只输出JSON，不要有任何其他文字。' },
+          { role: 'user', content: prompt },
+        ],
+        max_tokens: 2048,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`AI API error: ${response.status}`);
+    }
+
+    const data = await response.json() as { choices: Array<{ message: { content: string } }> };
+    return data.choices[0]?.message?.content || '';
+  }
+
+  private parseResponse(text: string, _snapshot: Record<string, unknown>): AiDiagnosticReport {
+    try {
+      // Try to extract JSON from the response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]) as AiDiagnosticReport;
+      }
+    } catch {}
+    return this.fallbackDiagnostic(_snapshot);
+  }
+
+  private fallbackDiagnostic(snapshot: Record<string, unknown>): AiDiagnosticReport {
+    const data = snapshot as any;
+    const cpuUsage = data.cpu?.usage ?? 0;
+    const memUsage = data.memory?.usagePercent ?? 0;
+    const diskWarning = data.disks?.some((d: any) => (d.usagePercent ?? 0) > 90);
+    
+    const score = Math.max(0, 100 - cpuUsage * 0.3 - memUsage * 0.3 - (diskWarning ? 15 : 0));
+    const grade = score >= 85 ? 'excellent' : score >= 70 ? 'good' : score >= 50 ? 'fair' : score >= 30 ? 'poor' : 'critical';
+    
+    const sections: AiDiagnosticSection[] = [];
+    
+    sections.push({
+      title: 'CPU',
+      severity: cpuUsage > 80 ? 'critical' : cpuUsage > 60 ? 'warning' : 'good',
+      items: [{
+        label: 'CPU 使用率',
+        status: cpuUsage > 80 ? 'error' : cpuUsage > 60 ? 'warning' : 'ok',
+        detail: `当前使用率 ${cpuUsage}%`,
+        suggestion: cpuUsage > 80 ? 'CPU负载过高，请关闭不必要的程序' : undefined,
+      }],
+    });
+
+    sections.push({
+      title: '内存',
+      severity: memUsage > 85 ? 'critical' : memUsage > 70 ? 'warning' : 'good',
+      items: [{
+        label: '内存占用',
+        status: memUsage > 85 ? 'error' : memUsage > 70 ? 'warning' : 'ok',
+        detail: `当前占用 ${memUsage}%`,
+        suggestion: memUsage > 85 ? '内存不足，建议关闭部分程序或增加内存条' : undefined,
+      }],
+    });
+
+    if (diskWarning) {
+      sections.push({
+        title: '磁盘',
+        severity: 'critical',
+        items: data.disks.filter((d: any) => (d.usagePercent ?? 0) > 90).map((d: any) => ({
+          label: d.name || d.model || '磁盘',
+          status: 'error' as const,
+          detail: `使用率 ${d.usagePercent}%`,
+          suggestion: '磁盘空间不足，请清理不必要的文件',
+        })),
+      });
+    }
+
+    return {
+      score: Math.round(score),
+      grade,
+      summary: grade === 'excellent' ? '系统状态良好' : grade === 'good' ? '系统基本正常' : '系统需要关注',
+      sections,
+      timestamp: Date.now(),
+    };
+  }
+}
+```
+
+#### 3. `electron/ai/index.ts` — AI module barrel export
+```typescript
+export { AiDiagnosticEngine } from './diagnostic';
+export type { AiConfig, AiDiagnosticReport, AiDiagnosticSection, AiDiagnosticItem } from './types';
+```
+
+#### 4. `electron/ai/aiProvider.ts` — AI provider singleton (reads config from settings DB)
+```typescript
+import { AiDiagnosticEngine } from './diagnostic';
+import type { AiConfig } from './types';
+
+let diagnosticEngine: AiDiagnosticEngine | null = null;
+
+export async function getDiagnosticEngine(): Promise<AiDiagnosticEngine> {
+  if (!diagnosticEngine) {
+    const { getAllSettings } = require('../database/settings');
+    const settings = getAllSettings();
+    const config: AiConfig = {
+      endpoint: settings.aiEndpoint || 'https://api.deepseek.com',
+      model: settings.aiModel || 'deepseek-chat',
+      apiKey: settings.aiApiKey || '',
+    };
+    diagnosticEngine = new AiDiagnosticEngine(config);
+  }
+  return diagnosticEngine;
+}
+
+export function resetDiagnosticEngine(): void {
+  diagnosticEngine = null;
+}
+```
+
+### Files to modify:
+
+#### 1. Modify `electron/main.ts` — Add AI diagnostic IPC handler
+After the existing AI-related IPC handlers (around line 438-464), add:
+```typescript
+import { getDiagnosticEngine, resetDiagnosticEngine } from './ai/aiProvider';
+
+// AI Diagnostic
+ipcMain.handle('pchelper:run-ai-diagnostic', async () => {
+  const engine = await getDiagnosticEngine();
+  return engine.runFullDiagnostic();
+});
+
+ipcMain.handle('pchelper:reset-ai-engine', () => {
+  resetDiagnosticEngine();
+  return true;
+});
+```
+
+Place these new handlers after the existing `pchelper:run-ai-analysis` handler (after line ~438).
+
+#### 2. Modify `electron/preload.ts` — Expose diagnostic channels
+Add to the `contextBridge.exposeInMainWorld('electronAPI', { ... })` block:
+```typescript
+  runAiDiagnostic: () => ipcRenderer.invoke('pchelper:run-ai-diagnostic'),
+  resetAiEngine: () => ipcRenderer.invoke('pchelper:reset-ai-engine'),
+```
+
+Place after the existing `runAiAnalysis` entry.
+
+#### 3. Create `src/stores/aiDiagnosticStore.ts` — Zustand store
+```typescript
+import { create } from 'zustand';
+import type { AiDiagnosticReport } from '../../../electron/ai/types';
+
+interface AiDiagnosticState {
+  report: AiDiagnosticReport | null;
+  loading: boolean;
+  error: string | null;
+  runDiagnostic: () => Promise<void>;
+  clearReport: () => void;
+}
+
+export const useAiDiagnosticStore = create<AiDiagnosticState>((set) => ({
+  report: null,
+  loading: false,
+  error: null,
+
+  runDiagnostic: async () => {
+    set({ loading: true, error: null });
+    try {
+      const report = await (window as any).electronAPI.runAiDiagnostic();
+      set({ report, loading: false });
+    } catch (err: any) {
+      set({ error: err.message || '诊断失败', loading: false });
+    }
+  },
+
+  clearReport: () => set({ report: null, error: null }),
+}));
+```
+
+#### 4. Create `src/components/AIDiagnosticView/index.tsx` — Diagnostic result UI
+```tsx
+import { useEffect, useState } from 'react';
+import { useAiDiagnosticStore } from '../../stores/aiDiagnosticStore';
+import { Heart, AlertTriangle, CheckCircle, XCircle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import './AIDiagnostic.css';
+
+export default function AIDiagnosticView() {
+  const { report, loading, error, runDiagnostic, clearReport } = useAiDiagnosticStore();
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    // Don't auto-run, user clicks the button
+  }, []);
+
+  const toggleSection = (title: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      return next;
+    });
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 85) return 'var(--green)';
+    if (score >= 70) return 'var(--accent)';
+    if (score >= 50) return 'var(--yellow)';
+    if (score >= 30) return 'var(--orange)';
+    return 'var(--red)';
+  };
+
+  const getGradeLabel = (grade: string) => {
+    const labels: Record<string, string> = {
+      excellent: '优秀',
+      good: '良好',
+      fair: '一般',
+      poor: '较差',
+      critical: '危急',
+    };
+    return labels[grade] || grade;
+  };
+
+  const StatusIcon = ({ status }: { status: string }) => {
+    switch (status) {
+      case 'ok': return <CheckCircle size={16} style={{ color: 'var(--green)', flexShrink: 0 }} />;
+      case 'warning': return <AlertTriangle size={16} style={{ color: 'var(--yellow)', flexShrink: 0 }} />;
+      case 'error': return <XCircle size={16} style={{ color: 'var(--red)', flexShrink: 0 }} />;
+      default: return null;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="ai-diagnostic">
+        <div className="ai-diagnostic-loading">
+          <RefreshCw size={32} className="spin-icon" />
+          <p>正在体检系统...</p>
+          <p className="loading-sub">正在采集硬件数据并进行分析</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="ai-diagnostic">
+        <div className="ai-diagnostic-error">
+          <XCircle size={32} style={{ color: 'var(--red)' }} />
+          <p>诊断失败</p>
+          <p className="error-detail">{error}</p>
+          <button className="btn btn-primary" onClick={runDiagnostic}>重试</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="ai-diagnostic">
+      <div className="ai-diagnostic-header">
+        <h2>AI 系统体检</h2>
+        <p className="subtitle">一键检测系统健康状况，获取优化建议</p>
+      </div>
+
+      {!report ? (
+        <div className="ai-diagnostic-start">
+          <Heart size={64} style={{ color: 'var(--accent)', marginBottom: 16 }} />
+          <p>点击下方按钮开始系统全面体检</p>
+          <p className="hint">将采集硬件数据并使用 AI 进行分析</p>
+          <button className="btn btn-primary btn-lg" onClick={runDiagnostic}>
+            开始体检
+          </button>
+        </div>
+      ) : (
+        <div className="ai-diagnostic-result">
+          {/* Score */}
+          <div className="score-section">
+            <div className="score-circle" style={{ borderColor: getScoreColor(report.score) }}>
+              <span className="score-value" style={{ color: getScoreColor(report.score) }}>
+                {report.score}
+              </span>
+              <span className="score-label">分</span>
+            </div>
+            <div className="score-info">
+              <span className="grade-badge" style={{ background: getScoreColor(report.score) }}>
+                {getGradeLabel(report.grade)}
+              </span>
+              <p className="summary">{report.summary}</p>
+              <p className="timestamp">
+                {new Date(report.timestamp).toLocaleString('zh-CN')}
+              </p>
+            </div>
+          </div>
+
+          {/* Sections */}
+          <div className="sections-list">
+            {report.sections.map((section) => {
+              const isExpanded = expandedSections.has(section.title);
+              const sectionColor = section.severity === 'critical' ? 'var(--red)' :
+                section.severity === 'warning' ? 'var(--yellow)' : 'var(--green)';
+
+              return (
+                <div
+                  key={section.title}
+                  className={`section-card ${isExpanded ? 'expanded' : ''}`}
+                >
+                  <button
+                    className="section-header"
+                    onClick={() => toggleSection(section.title)}
+                  >
+                    <span className="section-indicator" style={{ background: sectionColor }} />
+                    <span className="section-title">{section.title}</span>
+                    <span className="section-count">
+                      {section.items.filter(i => i.status !== 'ok').length} 个问题
+                    </span>
+                    {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </button>
+                  {isExpanded && (
+                    <div className="section-body">
+                      {section.items.map((item, idx) => (
+                        <div key={idx} className="item-row">
+                          <StatusIcon status={item.status} />
+                          <div className="item-content">
+                            <span className="item-label">{item.label}</span>
+                            <span className="item-detail">{item.detail}</span>
+                            {item.suggestion && (
+                              <span className="item-suggestion">💡 {item.suggestion}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Re-run */}
+          <div className="rerun-section">
+            <button className="btn btn-secondary" onClick={runDiagnostic}>
+              <RefreshCw size={14} /> 重新体检
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+#### 5. Create `src/components/AIDiagnosticView/AIDiagnostic.css`
+```css
+.ai-diagnostic {
+  padding: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.ai-diagnostic-header {
+  margin-bottom: 24px;
+}
+
+.ai-diagnostic-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 4px;
+  color: var(--text-primary);
+}
+
+.ai-diagnostic-header .subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.ai-diagnostic-loading,
+.ai-diagnostic-error,
+.ai-diagnostic-start {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.ai-diagnostic-loading p,
+.ai-diagnostic-error p,
+.ai-diagnostic-start p {
+  margin: 8px 0 0;
+  font-size: 15px;
+}
+
+.loading-sub,
+.hint {
+  font-size: 12px !important;
+  color: var(--text-tertiary);
+  margin-top: 4px !important;
+}
+
+.error-detail {
+  font-size: 12px;
+  color: var(--red);
+  background: var(--bg-hover);
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  margin: 8px 0 16px;
+  max-width: 400px;
+  word-break: break-all;
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.score-section {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  margin-bottom: 20px;
+}
+
+.score-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 4px solid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.score-value {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.score-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.score-info {
+  flex: 1;
+}
+
+.grade-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.score-info .summary {
+  font-size: 14px;
+  color: var(--text-primary);
+  margin: 4px 0;
+}
+
+.timestamp {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin: 4px 0 0;
+}
+
+.sections-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  transition: background 0.15s;
+}
+
+.section-header:hover {
+  background: var(--bg-hover);
+}
+
+.section-indicator {
+  width: 4px;
+  height: 20px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.section-title {
+  font-weight: 500;
+  flex: 1;
+  text-align: left;
+}
+
+.section-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 2px 8px;
+  background: var(--bg-hover);
+  border-radius: 8px;
+}
+
+.section-body {
+  padding: 0 16px 12px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-hover);
+  border-radius: var(--radius);
+}
+
+.item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.item-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.item-detail {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.item-suggestion {
+  font-size: 11px;
+  color: var(--accent);
+  margin-top: 2px;
+}
+
+.rerun-section {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-secondary {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background: var(--border-color);
+}
+
+.btn-lg {
+  padding: 12px 32px;
+  font-size: 15px;
+}
+```
+
+#### 6. Modify `src/App.tsx` — Add import and route
+Add import:
+```typescript
+import AIDiagnosticView from './components/AIDiagnosticView';
+```
+
+Add case to MainContent switch:
+```typescript
+    case 'aiDiagnostic':
+      return <AIDiagnosticView />;
+```
+
+Place it before the existing `ai` case.
+
+#### 7. Modify `src/components/Sidebar/index.tsx` — Add navigation item
+Add import at top:
+```typescript
+import { ... HeartPulse ... } from 'lucide-react';
+```
+
+Add item to the 'Data' section (or the 'Other' section, whichever fits better):
+```typescript
+      { id: 'aiDiagnostic', label: 'AI 体检', icon: HeartPulse },
+```
+
+Note: Use `HeartPulse` icon from lucide-react if available, or reuse `Heart`.
+
+#### 8. Modify `src/utils/types.ts` — Add new NavPage value
+Add `'aiDiagnostic'` to the NavPage union type:
+```typescript
+export type NavPage = 'dashboard' | 'repair' | ... 'aiDiagnostic' | ...
+```
+
+### IMPORTANT:
+- The settings DB functions are at `electron/database/settings.ts` — they export `getAllSettings()` and similar functions
+- The hardware collector is at `electron/hardware/collector.ts` — it exports `hardwareCollector` with `getFullSnapshot()` method
+- The health scorer is at `electron/health/scorer.ts` — it exports `healthScorer` with `getScore()` method
+- After all changes: `npx tsc --noEmit` (zero errors required)
+- Do NOT run npm install
+- Keep the AI module files minimal and focused
+
+---
+
+Send to Claude Code:
+```
+cd /home/ubuntu/workspace/pc-toolkit
+echo "y" | claude -p "$(cat docs/plans/phase-A1-prompt.txt)" --allowedTools 'Read,Write,Edit,Bash' --max-turns 80 --dangerously-skip-permissions 2>&1
+```

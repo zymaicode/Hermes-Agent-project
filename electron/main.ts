@@ -58,6 +58,7 @@ import { dnsLookup } from './netdiag/dns';
 import { testBandwidth } from './netdiag/bandwidth';
 import { PolicyManager } from './policy/policyManager';
 import { DeviceManager } from './external/deviceManager';
+import { getDiagnosticEngine, resetDiagnosticEngine } from './ai/aiProvider';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -458,6 +459,19 @@ function registerIpcHandlers(): void {
       }
     }
     return alert;
+  });
+
+  // AI Diagnostic
+  ipcMain.handle('pchelper:run-ai-diagnostic', async () => {
+    if (!hardwareCollector) return null;
+    const snapshot = hardwareCollector.getSnapshot();
+    const engine = await getDiagnosticEngine();
+    return engine.runFullDiagnostic(snapshot);
+  });
+
+  ipcMain.handle('pchelper:reset-ai-engine', () => {
+    resetDiagnosticEngine();
+    return true;
   });
 
   // Health Score
