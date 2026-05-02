@@ -446,4 +446,10 @@ contextBridge.exposeInMainWorld('pchelper', {
   getAllGameConfigs: () => ipcRenderer.invoke('pchelper:get-all-game-configs'),
   saveGameConfig: (config: any) => ipcRenderer.invoke('pchelper:save-game-config', config),
   deleteGameConfig: (gameName: string) => ipcRenderer.invoke('pchelper:delete-game-config', gameName),
+
+  // Theme
+  getTheme: () => ipcRenderer.invoke('pchelper:get-theme'),
+  saveTheme: (config: any) => ipcRenderer.invoke('pchelper:save-theme', config),
+  getThemeDefaults: () => ipcRenderer.invoke('pchelper:get-theme-defaults'),
+  getThemeCSSVars: (themeName: string) => ipcRenderer.invoke('pchelper:get-theme-css-vars', themeName),
 });

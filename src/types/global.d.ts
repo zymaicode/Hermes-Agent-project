@@ -35,6 +35,7 @@ import type { TraceRouteResult } from '../../electron/netdiag/traceroute';
 import type { PortScanResult } from '../../electron/netdiag/portscanner';
 import type { DnsLookupResult } from '../../electron/netdiag/dns';
 import type { BandwidthResult } from '../../electron/netdiag/bandwidth';
+import type { ThemeConfig } from '../../electron/theme/types';
 
 export {};
 
@@ -437,6 +438,12 @@ declare global {
       getPrinters: () => Promise<PrinterEntry[]>;
       getGameControllers: () => Promise<GameControllerEntry[]>;
       refreshDevices: () => Promise<void>;
+
+      // Theme
+      getTheme: () => Promise<ThemeConfig>;
+      saveTheme: (config: ThemeConfig) => Promise<true>;
+      getThemeDefaults: () => Promise<ThemeConfig>;
+      getThemeCSSVars: (themeName: string) => Promise<Record<string, string>>;
     };
   }
 

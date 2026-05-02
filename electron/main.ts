@@ -65,6 +65,7 @@ import { detectGames } from './game/gameDetector';
 import { optimizeForGaming, restoreAfterGaming, getActiveOptimization } from './game/gameOptimizer';
 import { startRecording as fpsStartRecording, stopRecording as fpsStopRecording, getFpsHistory, getSessionDetail, clearFpsHistory } from './game/fpsRecorder';
 import { getGameConfig, getAllGameConfigs, saveGameConfig, deleteGameConfig } from './game/gameConfig';
+import { getTheme, saveTheme, getThemeDefaults, getThemeCSSVars } from './theme/index';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -1385,6 +1386,12 @@ function registerIpcHandlers(): void {
   ipcMain.handle('pchelper:get-all-game-configs', () => getAllGameConfigs());
   ipcMain.handle('pchelper:save-game-config', (_event, config: any) => { saveGameConfig(config); return true; });
   ipcMain.handle('pchelper:delete-game-config', (_event, gameName: string) => { deleteGameConfig(gameName); return true; });
+
+  // Theme
+  ipcMain.handle('pchelper:get-theme', async () => getTheme());
+  ipcMain.handle('pchelper:save-theme', async (_, config) => { saveTheme(config); return true; });
+  ipcMain.handle('pchelper:get-theme-defaults', async () => getThemeDefaults());
+  ipcMain.handle('pchelper:get-theme-css-vars', async (_, themeName) => getThemeCSSVars(themeName));
 
   // External links
   ipcMain.handle('pchelper:open-external', (_event, url: string) => {

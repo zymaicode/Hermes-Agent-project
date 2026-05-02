@@ -1,0 +1,342 @@
+## Phase C1: 桌面仪表盘主题系统
+
+项目：PCHelper (pc-toolkit) — Windows 系统工具，Electron + React + Vite + TypeScript + Zustand + better-sqlite3 + Recharts + lucide-react
+
+### Task
+
+为 Dashboard 实现主题系统，允许用户切换仪表盘的视觉布局风格和配色。
+
+### Files to create:
+
+#### 1. `electron/theme/types.ts` — 主题类型定义
+```typescript
+// 布局风格
+export type DashLayout = 'grid' | 'vertical' | 'compact';
+
+// 配色主题 (系统默认 + 4套预设)
+export type ColorTheme =
+  | 'default'    // 当前 AIDA64 暗色主题
+  | 'ocean'      // 蓝绿冷色
+  | 'sunset'     // 暖橙红渐变
+  | 'forest'     // 绿棕自然
+  | 'midnight';  // 深紫暗色
+
+export interface ThemeConfig {
+  layout: DashLayout;
+  colorTheme: ColorTheme;
+  showHealthScore: boolean;
+  showSparklines: boolean;
+  showTempChart: boolean;
+  showDiskActivity: boolean;
+  showMemComposition: boolean;
+  cardOrder: string[];       // ['cpu','memory','disk','gpu','health']
+  cardOpacity: number;       // 0.5-1.0
+  fontSize: 'small' | 'medium' | 'large';
+}
+
+export const DASHBOARD_THEME_DEFAULTS: ThemeConfig = {
+  layout: 'grid',
+  colorTheme: 'default',
+  showHealthScore: true,
+  showSparklines: true,
+  showTempChart: true,
+  showDiskActivity: true,
+  showMemComposition: true,
+  cardOrder: ['cpu', 'memory', 'disk', 'gpu', 'health'],
+  cardOpacity: 1.0,
+  fontSize: 'medium',
+};
+```
+
+#### 2. `electron/theme/themeManager.ts` — SQLite CRUD
+```typescript
+import Database from 'better-sqlite3';
+import path from 'path';
+import { app } from 'electron';
+import { ThemeConfig, DASHBOARD_THEME_DEFAULTS } from './types';
+
+const dbPath = path.join(app.getPath('userData'), 'theme.db');
+
+let db: Database.Database | null = null;
+
+function getDb(): Database.Database {
+  if (!db) {
+    db = new Database(dbPath);
+    db.pragma('journal_mode = WAL');
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS theme (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        config TEXT NOT NULL
+      )
+    `);
+  }
+  return db;
+}
+
+export function getTheme(): ThemeConfig {
+  const d = getDb().prepare('SELECT config FROM theme WHERE id = 1').get() as { config: string } | undefined;
+  if (d) return JSON.parse(d.config);
+  return { ...DASHBOARD_THEME_DEFAULTS };
+}
+
+export function saveTheme(config: ThemeConfig): void {
+  getDb().prepare('INSERT INTO theme (id, config) VALUES (1, ?) ON CONFLICT(id) DO UPDATE SET config = excluded.config').run(JSON.stringify(config));
+}
+```
+
+#### 3. `electron/theme/index.ts` — barrel export
+```typescript
+export * from './types';
+export * from './themeManager';
+```
+
+#### 4. `electron/theme/themeRenderer.ts` — 主题 CSS 变量注入（通过 preload 调用）
+```typescript
+// 预计算各主题的 CSS 变量映射，返回给渲染进程注入到 :root
+export interface ThemeCSSVars {
+  '--dash-card-bg': string;
+  '--dash-card-border': string;
+  '--dash-accent': string;
+  '--dash-accent-2': string;
+  '--dash-chart-line': string;
+  '--dash-chart-fill': string;
+  '--dash-text-primary': string;
+  '--dash-text-secondary': string;
+}
+
+const themePalettes: Record<string, ThemeCSSVars> = {
+  default: {
+    '--dash-card-bg': 'var(--card-bg)',
+    '--dash-card-border': 'var(--card-border)',
+    '--dash-accent': 'var(--accent)',
+    '--dash-accent-2': '#7c3aed',
+    '--dash-chart-line': 'var(--accent)',
+    '--dash-chart-fill': 'var(--accent)',
+    '--dash-text-primary': 'var(--text-primary)',
+    '--dash-text-secondary': 'var(--text-secondary)',
+  },
+  ocean: {
+    '--dash-card-bg': '#0f172a',
+    '--dash-card-border': '#1e3a5f',
+    '--dash-accent': '#38bdf8',
+    '--dash-accent-2': '#2dd4bf',
+    '--dash-chart-line': '#38bdf8',
+    '--dash-chart-fill': '#38bdf8',
+    '--dash-text-primary': '#e0f2fe',
+    '--dash-text-secondary': '#7dd3fc',
+  },
+  sunset: {
+    '--dash-card-bg': '#1c1917',
+    '--dash-card-border': '#7c2d12',
+    '--dash-accent': '#fb923c',
+    '--dash-accent-2': '#ef4444',
+    '--dash-chart-line': '#fb923c',
+    '--dash-chart-fill': '#fb923c',
+    '--dash-text-primary': '#ffedd5',
+    '--dash-text-secondary': '#fdba74',
+  },
+  forest: {
+    '--dash-card-bg': '#0c1917',
+    '--dash-card-border': '#1a3a2c',
+    '--dash-accent': '#4ade80',
+    '--dash-accent-2': '#a3e635',
+    '--dash-chart-line': '#4ade80',
+    '--dash-chart-fill': '#4ade80',
+    '--dash-text-primary': '#ecfdf5',
+    '--dash-text-secondary': '#86efac',
+  },
+  midnight: {
+    '--dash-card-bg': '#0f0a1a',
+    '--dash-card-border': '#2a1a4e',
+    '--dash-accent': '#a78bfa',
+    '--dash-accent-2': '#c084fc',
+    '--dash-chart-line': '#a78bfa',
+    '--dash-chart-fill': '#a78bfa',
+    '--dash-text-primary': '#ede9fe',
+    '--dash-text-secondary': '#c4b5fd',
+  },
+};
+
+export function getThemeCSSVars(themeName: string): ThemeCSSVars {
+  return themePalettes[themeName] ?? themePalettes.default;
+}
+```
+
+#### 5. `src/stores/themeStore.ts` — Zustand store
+```typescript
+import { create } from 'zustand';
+import type { ThemeConfig, ThemeCSSVars } from '../../../electron/theme/types';
+// 注意上面 import 实际要从 electron/theme/types 走 preload，但直接 import interface 没问题
+
+interface ThemeState {
+  config: ThemeConfig;
+  cssVars: Record<string, string>;
+  loading: boolean;
+
+  loadTheme: () => Promise<void>;
+  updateTheme: (partial: Partial<ThemeConfig>) => Promise<void>;
+  resetTheme: () => Promise<void>;
+}
+
+export const useThemeStore = create<ThemeState>((set, get) => ({
+  config: null!,
+  cssVars: {},
+  loading: true,
+
+  loadTheme: async () => {
+    // @ts-ignore — available via preload
+    const config: ThemeConfig = await window.api.getTheme();
+    const cssVars: Record<string, string> = await window.api.getThemeCSSVars(config.colorTheme);
+    set({ config, cssVars, loading: false });
+  },
+
+  updateTheme: async (partial) => {
+    const next = { ...get().config, ...partial };
+    await window.api.saveTheme(next);
+    const cssVars = await window.api.getThemeCSSVars(next.colorTheme);
+    set({ config: next, cssVars });
+  },
+
+  resetTheme: async () => {
+    // @ts-ignore
+    const defaults: ThemeConfig = await window.api.getThemeDefaults();
+    const cssVars = await window.api.getThemeCSSVars(defaults.colorTheme);
+    set({ config: defaults, cssVars });
+  },
+}));
+```
+
+#### 6. `src/components/Dashboard/ThemePanel.tsx` — 主题选择面板（浮动面板）
+一个浮动面板，点击工具栏齿轮按钮打开，包含：
+- **布局选择**: 3 个卡片按钮（Grid / Vertical / Compact）
+- **配色主题**: 5 个色块卡片按钮（default/ocean/sunset/forest/midnight），每个卡片显示主题名称和预览色条
+- **开关项**: 显示健康分 / 显示迷你折线 / 显示温度图 / 显示磁盘活动 / 显示内存构成 — 每个用 toggle switch
+- **卡片透明度**: range slider (0.5-1.0)
+- **字体大小**: 3 个 radio 按钮 (Small / Medium / Large)
+- **卡片排序**: 拖拽排序列表 (cpu/memory/disk/gpu/health) — 用 drag-and-drop（可以简单用 up/down 按钮代替，避免引入新依赖）
+- **重置默认** 按钮
+
+组件样式使用 CSS 变量 `--dash-*`，保持与暗色主题一致。面板本身作为 overlay/drawer 从右侧滑入。
+
+样式文件：`src/components/Dashboard/ThemePanel.css`
+
+#### 7. `src/components/Dashboard/ThemePanel.css` — 主题面板样式
+```css
+.theme-panel-overlay {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 320px;
+  background: var(--bg-primary); border-left: 1px solid var(--card-border);
+  z-index: 1000; display: flex; flex-direction: column;
+  animation: slideIn 0.2s ease-out;
+  overflow-y: auto;
+}
+.theme-panel-overlay.closing { animation: slideOut 0.15s ease-in; }
+@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes slideOut { from { transform: translateX(0); } to { transform: translateX(100%); } }
+
+.theme-panel-header { padding: 16px; border-bottom: 1px solid var(--card-border); display: flex; align-items: center; justify-content: space-between; }
+.theme-panel-title { font-size: 15px; font-weight: 600; }
+.theme-panel-close { cursor: pointer; opacity: 0.6; }
+.theme-panel-close:hover { opacity: 1; }
+
+.theme-panel-body { padding: 16px; flex: 1; }
+.theme-section { margin-bottom: 20px; }
+.theme-section-title { font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+
+.theme-layout-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.theme-layout-btn { padding: 10px; border: 1px solid var(--card-border); border-radius: 8px; background: var(--card-bg); cursor: pointer; text-align: center; font-size: 12px; transition: all 0.15s; }
+.theme-layout-btn.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
+.theme-layout-btn:hover { border-color: var(--accent); }
+
+.theme-color-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 8px; }
+.theme-color-btn { padding: 8px; border: 1px solid var(--card-border); border-radius: 8px; background: var(--card-bg); cursor: pointer; text-align: center; font-size: 11px; transition: all 0.15s; }
+.theme-color-btn.active { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 40%, transparent); }
+.theme-color-swatch { width: 100%; height: 24px; border-radius: 4px; margin-bottom: 4px; }
+
+.theme-toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
+.theme-toggle-label { font-size: 13px; }
+.theme-toggle-switch { width: 36px; height: 20px; border-radius: 10px; border: none; cursor: pointer; position: relative; transition: background 0.15s; }
+.theme-toggle-switch.on { background: var(--accent); }
+.theme-toggle-switch.off { background: var(--card-border); }
+.theme-toggle-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: white; transition: transform 0.15s; }
+.theme-toggle-switch.on::after { transform: translateX(16px); }
+
+.theme-slider-row { display: flex; align-items: center; gap: 12px; }
+.theme-slider { flex: 1; accent-color: var(--accent); }
+.theme-slider-value { font-size: 12px; color: var(--text-secondary); min-width: 28px; text-align: right; }
+
+.theme-font-grid { display: flex; gap: 8px; }
+.theme-font-btn { flex: 1; padding: 8px; border: 1px solid var(--card-border); border-radius: 6px; background: var(--card-bg); cursor: pointer; text-align: center; font-size: 11px; }
+.theme-font-btn.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
+
+.theme-order-list { display: flex; flex-direction: column; gap: 4px; }
+.theme-order-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 6px; font-size: 13px; }
+.theme-order-btns { display: flex; gap: 4px; }
+.theme-order-btn { cursor: pointer; opacity: 0.5; padding: 2px; }
+.theme-order-btn:hover { opacity: 1; }
+
+.theme-reset-btn { width: 100%; padding: 10px; border: 1px solid var(--card-border); border-radius: 8px; background: var(--card-bg); cursor: pointer; font-size: 13px; text-align: center; margin-top: 8px; }
+.theme-reset-btn:hover { border-color: var(--red); color: var(--red); }
+```
+
+### Files to modify:
+
+#### 1. `electron/main.ts` — 注册 theme IPC handlers
+在已有 IPC handler 区域添加：
+```typescript
+import { getTheme, saveTheme, getThemeDefaults } from './theme/themeManager';
+import { getThemeCSSVars } from './theme/themeRenderer';
+
+// 在 ipcMain.handle 注册区域
+ipcMain.handle('pchelper:get-theme', async () => getTheme());
+ipcMain.handle('pchelper:save-theme', async (_, config) => { saveTheme(config); return true; });
+ipcMain.handle('pchelper:get-theme-defaults', async () => { const { DASHBOARD_THEME_DEFAULTS } = await import('./theme/types'); return DASHBOARD_THEME_DEFAULTS; });
+ipcMain.handle('pchelper:get-theme-css-vars', async (_, themeName) => getThemeCSSVars(themeName));
+```
+
+#### 2. `electron/preload.ts` — 暴露 theme API
+在 contextBridge.exposeInMainWorld 中添加：
+```typescript
+getTheme: () => ipcRenderer.invoke('pchelper:get-theme'),
+saveTheme: (config: any) => ipcRenderer.invoke('pchelper:save-theme', config),
+getThemeDefaults: () => ipcRenderer.invoke('pchelper:get-theme-defaults'),
+getThemeCSSVars: (themeName: string) => ipcRenderer.invoke('pchelper:get-theme-css-vars', themeName),
+```
+
+#### 3. `electron/theme/index.ts` — 确保 barrel 导出完整（已由创建步骤覆盖）
+
+#### 4. `src/components/Dashboard/index.tsx` — 集成主题系统
+修改 Dashboard 组件：
+- 在组件内部使用 `useThemeStore` 加载主题配置
+- 在组件根 div 上通过 `style` 应用 `cssVars`（注入到局部作用域，不污染全局）
+- 根据 `config.layout` 切换 CSS class (`.dash-grid` / `.dash-vertical` / `.dash-compact`)
+- 根据 `config.cardOrder` 排序卡片列表
+- 根据开关项条件渲染各区域
+- 根据 `config.cardOpacity` 设置卡片 opacity
+- 根据 `config.fontSize` 设置根字体大小缩放
+- 在右上角添加一个主题齿轮按钮（Palette 图标），点击打开 ThemePanel
+- 引入 ThemePanel 组件
+
+同时修改 Dashboard 中对颜色的引用，使用 `--dash-accent` 等变量代替硬编码颜色。具体：
+- `MiniSparkline` 里的 `color` prop 用 `var(--dash-accent)` 作为默认
+- `StatCard` 里的 `color` prop 映射到 `var(--dash-accent)`
+- 文本颜色用 `var(--dash-text-primary)` 和 `var(--dash-text-secondary)`
+
+#### 5. `src/components/Sidebar/index.tsx` — 添加 Dashboard 设置入口
+如果 `currentPage === 'dashboard'` 时，在侧边栏选中状态保持不变，不需要额外修改。用户从 Dashboard 内操作 ThemePanel。
+
+#### 6. `src/App.tsx` — 在 App 初始化时加载主题
+在最外层 App 组件的 useEffect 中添加（与 startPolling 并列）：
+```typescript
+const loadTheme = useThemeStore((s) => s.loadTheme);
+useEffect(() => { loadTheme(); }, [loadTheme]);
+```
+
+### IMPORTANT:
+- 只读现有文件，不要删除或重写任何已有功能
+- 所有新文件放在对应的 electron/theme/ 目录和 src/components/Dashboard/ 目录
+- ThemePanel 是浮动面板（overlay），不是独立页面，路由不需要修改
+- CSS 变量用 `--dash-*` 前缀，不要覆盖现有的 `var(--card-bg)` 等全局变量
+- `color-mix` 是 modern CSS，不在生产环境需要降级 — 保持现有 polyfill 策略
+- After all changes: npx tsc --noEmit (zero errors required)
+- Do NOT run npm install or npm run build
+- Do NOT edit node_modules or .git

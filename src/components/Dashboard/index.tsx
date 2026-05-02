@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Cpu, HardDrive, Heart, MemoryStick, Monitor, Thermometer, ChevronDown, ChevronRight } from 'lucide-react';
+import { Cpu, HardDrive, Heart, MemoryStick, Monitor, Thermometer, ChevronDown, ChevronRight, Palette } from 'lucide-react';
 import {
   LineChart, Line, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
 } from 'recharts';
 import { useHardwareStore } from '../../stores/hardwareStore';
 import { useHealthStore } from '../../stores/healthStore';
+import { useThemeStore } from '../../stores/themeStore';
+import ThemePanel from './ThemePanel';
 
 function getUsageColor(usage: number): string {
   if (usage >= 80) return 'var(--red)';
@@ -109,6 +111,9 @@ export default function Dashboard() {
   const polling = useHardwareStore((s) => s.polling);
   const healthScore = useHealthStore((s) => s.score);
   const fetchHealth = useHealthStore((s) => s.fetchScore);
+  const config = useThemeStore((s) => s.config);
+  const cssVars = useThemeStore((s) => s.cssVars);
+  const themeLoading = useThemeStore((s) => s.loading);
   const [lastUpdated, setLastUpdated] = useState('');
   const [cpuExpanded, setCpuExpanded] = useState(false);
   const [perfTab, setPerfTab] = useState<string>('CPU');
@@ -120,6 +125,7 @@ export default function Dashboard() {
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const prevDisplayRef = useRef({ cpu: '', memory: '', disk: '', gpu: '' });
   const [highlighted, setHighlighted] = useState<Set<string>>(new Set());
+  const [themePanelOpen, setThemePanelOpen] = useState(false);
 
   useEffect(() => {
     if (snapshot) {
@@ -220,69 +226,127 @@ export default function Dashboard() {
   const timestamp = lastUpdated ? `Last updated: ${lastUpdated}` : '';
   const latestDiskActivity = diskActivity.slice(-snapshot.disks.length);
 
+  // Compute ordered stat cards based on theme config
+  const orderedCards = useMemo(() => {
+    if (!config) return [];
+    return config.cardOrder.map((key) => {
+      const idx = ['cpu', 'memory', 'disk', 'gpu', 'health'].indexOf(key);
+      const delay = idx >= 0 ? CARD_STAGGER_DELAYS[idx] : 0.3;
+      const baseStyle: React.CSSProperties = { animationDelay: `${delay}s`, animationFillMode: 'both', opacity: config.cardOpacity };
+      const hlClass = highlighted.has(key) ? ' animate-pulse-glow' : '';
+
+      switch (key) {
+        case 'cpu':
+          return (
+            <StatCard key="cpu" title="CPU Usage" icon={Cpu} value={cpu.usage.toFixed(1)} unit="%"
+              subtitle={`${cpu.name} · ${cpu.temp}°C`} color={getUsageColor(cpu.usage)}
+              history={config.showSparklines ? cpuHistory : []} timestamp={timestamp} useLine
+              onClick={() => setCpuExpanded(!cpuExpanded)} expanded={cpuExpanded}
+              className={`animate-slideUp${hlClass}`}
+              style={baseStyle}
+            />
+          );
+        case 'memory':
+          return (
+            <StatCard key="memory" title="Memory" icon={MemoryStick} value={memory.used.toFixed(1)} unit="GB"
+              subtitle={`of ${memory.total} GB · ${memory.usagePercent.toFixed(1)}%`}
+              color={getUsageColor(memory.usagePercent)}
+              history={config.showSparklines ? memHistory : []} timestamp={timestamp}
+              className={`animate-slideUp${hlClass}`}
+              style={baseStyle}
+            />
+          );
+        case 'disk':
+          return (
+            <StatCard key="disk" title="Disk (C:)" icon={HardDrive} value={disks[0].used.toFixed(0)} unit="GB"
+              subtitle={`of ${formatBytes(disks[0].total)} · ${disks[0].usagePercent}%`}
+              color={getUsageColor(disks[0].usagePercent)}
+              history={config.showSparklines ? diskHistory : []} timestamp={timestamp}
+              className={`animate-slideUp${hlClass}`}
+              style={baseStyle}
+            />
+          );
+        case 'gpu':
+          return (
+            <StatCard key="gpu" title="GPU" icon={Monitor} value={gpu.usage.toFixed(1)} unit="%"
+              subtitle={`${gpu.name.split(' ').slice(-1)[0]} · ${gpu.temp}°C`}
+              color={getUsageColor(gpu.usage)}
+              history={config.showSparklines ? gpuHistory : []} timestamp={timestamp}
+              className={`animate-slideUp${hlClass}`}
+              style={baseStyle}
+            />
+          );
+        case 'health':
+          if (!healthScore || !config.showHealthScore) return null;
+          return (
+            <div key="health" className={`card animate-slideUp${hlClass}`}
+              style={{ position: 'relative', overflow: 'hidden', ...baseStyle }}>
+              <div className="card-header">
+                <span className="card-title">Health Score</span>
+                <span style={{ color: getHealthColor(healthScore.total) }}><Heart size={16} /></span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8 }}>
+                <svg width="80" height="80" viewBox="0 0 80 80">
+                  <circle cx="40" cy="40" r="32" fill="none" stroke="var(--bg-tertiary)" strokeWidth="6" />
+                  <circle cx="40" cy="40" r="32" fill="none" stroke={getHealthColor(healthScore.total)} strokeWidth="6"
+                    strokeLinecap="round" strokeDasharray={2 * Math.PI * 32}
+                    strokeDashoffset={2 * Math.PI * 32 * (1 - healthScore.total / 100)} transform="rotate(-90 40 40)" />
+                  <text x="40" y="38" textAnchor="middle" dominantBaseline="central"
+                    fill={getHealthColor(healthScore.total)} fontSize="20" fontWeight="700" fontFamily="var(--font-mono)">
+                    {healthScore.total}
+                  </text>
+                  <text x="40" y="53" textAnchor="middle" dominantBaseline="central"
+                    fill="var(--text-secondary)" fontSize="9" fontWeight="500">/100</text>
+                </svg>
+                <div style={{ fontSize: 13, fontWeight: 600, color: getHealthColor(healthScore.total), marginTop: 4 }}>{healthScore.grade}</div>
+              </div>
+              <div className="stat-label" style={{ textAlign: 'center' }}>{healthScore.recommendations[0] || 'System healthy'}</div>
+              <div className="card-timestamp">{timestamp}</div>
+            </div>
+          );
+        default:
+          return null;
+      }
+    });
+  }, [config, cpu, memory, disks, gpu, healthScore, cpuHistory, memHistory, diskHistory, gpuHistory, timestamp, highlighted, cpuExpanded]);
+
+  // Apply font size scaling
+  const fontSizeScale = config?.fontSize === 'small' ? '0.85em' : config?.fontSize === 'large' ? '1.15em' : '1em';
+
+  // Determine layout class
+  const layoutClass = config?.layout === 'vertical' ? 'dash-layout-vertical' : config?.layout === 'compact' ? 'dash-layout-compact' : 'dash-layout-grid';
+
   return (
-    <div className="flex-col animate-fadeIn" style={{ height: '100%', overflowY: 'auto' }}>
+    <div className={`flex-col animate-fadeIn ${layoutClass}`} style={{ height: '100%', overflowY: 'auto', fontSize: fontSizeScale, ...cssVars }}>
       <div className="flex items-center justify-between mb-4">
         <h2 style={{ fontSize: 20, fontWeight: 600 }}>Dashboard</h2>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setThemePanelOpen(true)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+              display: 'flex', alignItems: 'center', color: 'var(--text-secondary)',
+              opacity: 0.7, transition: 'opacity 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.7'; }}
+            title="Theme Settings"
+          >
+            <Palette size={16} />
+          </button>
           <span className={`pulse-dot${polling ? ' active' : ''}`} />
           <span className="text-sm text-muted text-mono">Polling: 1s interval</span>
         </div>
       </div>
 
       {/* Stat Cards Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
-        <StatCard title="CPU Usage" icon={Cpu} value={cpu.usage.toFixed(1)} unit="%"
-          subtitle={`${cpu.name} · ${cpu.temp}°C`} color={getUsageColor(cpu.usage)}
-          history={cpuHistory} timestamp={timestamp} useLine
-          onClick={() => setCpuExpanded(!cpuExpanded)} expanded={cpuExpanded}
-          className={`animate-slideUp${highlighted.has('cpu') ? ' animate-pulse-glow' : ''}`}
-          style={{ animationDelay: `${CARD_STAGGER_DELAYS[0]}s`, animationFillMode: 'both' }}
-        />
-        <StatCard title="Memory" icon={MemoryStick} value={memory.used.toFixed(1)} unit="GB"
-          subtitle={`of ${memory.total} GB · ${memory.usagePercent.toFixed(1)}%`}
-          color={getUsageColor(memory.usagePercent)} history={memHistory} timestamp={timestamp}
-          className={`animate-slideUp${highlighted.has('memory') ? ' animate-pulse-glow' : ''}`}
-          style={{ animationDelay: `${CARD_STAGGER_DELAYS[1]}s`, animationFillMode: 'both' }}
-        />
-        <StatCard title="Disk (C:)" icon={HardDrive} value={disks[0].used.toFixed(0)} unit="GB"
-          subtitle={`of ${formatBytes(disks[0].total)} · ${disks[0].usagePercent}%`}
-          color={getUsageColor(disks[0].usagePercent)} history={diskHistory} timestamp={timestamp}
-          className={`animate-slideUp${highlighted.has('disk') ? ' animate-pulse-glow' : ''}`}
-          style={{ animationDelay: `${CARD_STAGGER_DELAYS[2]}s`, animationFillMode: 'both' }}
-        />
-        <StatCard title="GPU" icon={Monitor} value={gpu.usage.toFixed(1)} unit="%"
-          subtitle={`${gpu.name.split(' ').slice(-1)[0]} · ${gpu.temp}°C`}
-          color={getUsageColor(gpu.usage)} history={gpuHistory} timestamp={timestamp}
-          className={`animate-slideUp${highlighted.has('gpu') ? ' animate-pulse-glow' : ''}`}
-          style={{ animationDelay: `${CARD_STAGGER_DELAYS[3]}s`, animationFillMode: 'both' }}
-        />
-        {healthScore && (
-          <div className={`card animate-slideUp${highlighted.has('health') ? ' animate-pulse-glow' : ''}`}
-            style={{ position: 'relative', overflow: 'hidden', animationDelay: `${CARD_STAGGER_DELAYS[4]}s`, animationFillMode: 'both' }}>
-            <div className="card-header">
-              <span className="card-title">Health Score</span>
-              <span style={{ color: getHealthColor(healthScore.total) }}><Heart size={16} /></span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8 }}>
-              <svg width="80" height="80" viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r="32" fill="none" stroke="var(--bg-tertiary)" strokeWidth="6" />
-                <circle cx="40" cy="40" r="32" fill="none" stroke={getHealthColor(healthScore.total)} strokeWidth="6"
-                  strokeLinecap="round" strokeDasharray={2 * Math.PI * 32}
-                  strokeDashoffset={2 * Math.PI * 32 * (1 - healthScore.total / 100)} transform="rotate(-90 40 40)" />
-                <text x="40" y="38" textAnchor="middle" dominantBaseline="central"
-                  fill={getHealthColor(healthScore.total)} fontSize="20" fontWeight="700" fontFamily="var(--font-mono)">
-                  {healthScore.total}
-                </text>
-                <text x="40" y="53" textAnchor="middle" dominantBaseline="central"
-                  fill="var(--text-secondary)" fontSize="9" fontWeight="500">/100</text>
-              </svg>
-              <div style={{ fontSize: 13, fontWeight: 600, color: getHealthColor(healthScore.total), marginTop: 4 }}>{healthScore.grade}</div>
-            </div>
-            <div className="stat-label" style={{ textAlign: 'center' }}>{healthScore.recommendations[0] || 'System healthy'}</div>
-            <div className="card-timestamp">{timestamp}</div>
-          </div>
-        )}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: config?.layout === 'vertical' ? '1fr' : 'repeat(5, 1fr)',
+        gap: config?.layout === 'compact' ? 8 : 16,
+        marginBottom: config?.layout === 'compact' ? 16 : 24,
+      }}>
+        {orderedCards}
       </div>
 
       {/* CPU Expanded Detail Panel */}
@@ -319,62 +383,68 @@ export default function Dashboard() {
       )}
 
       {/* Temperature Overview Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
-        <TempCard label="CPU Temperature" value={`${cpu.temp.toFixed(0)}°C`} history={tempHistory.map((t) => ({ val: t.cpu }))} color={getTempColor(cpu.temp)} icon={Thermometer} />
-        <TempCard label="GPU Temperature" value={`${gpu.temp.toFixed(0)}°C`} history={tempHistory.map((t) => ({ val: t.gpu }))} color={getTempColor(gpu.temp)} icon={Thermometer} />
-        <TempCard label="Disk Temperature" value={`${(disks[0]?.temp ?? 35).toFixed(0)}°C`} history={tempHistory.map((t) => ({ val: t.disk }))} color={getTempColor(disks[0]?.temp ?? 35)} icon={Thermometer} />
-      </div>
+      {config?.showTempChart !== false && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+          <TempCard label="CPU Temperature" value={`${cpu.temp.toFixed(0)}°C`} history={tempHistory.map((t) => ({ val: t.cpu }))} color={getTempColor(cpu.temp)} icon={Thermometer} />
+          <TempCard label="GPU Temperature" value={`${gpu.temp.toFixed(0)}°C`} history={tempHistory.map((t) => ({ val: t.gpu }))} color={getTempColor(gpu.temp)} icon={Thermometer} />
+          <TempCard label="Disk Temperature" value={`${(disks[0]?.temp ?? 35).toFixed(0)}°C`} history={tempHistory.map((t) => ({ val: t.disk }))} color={getTempColor(disks[0]?.temp ?? 35)} icon={Thermometer} />
+        </div>
+      )}
 
       {/* Memory Composition + Disk Activity */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <div className="card">
-          <div className="card-header"><span className="card-title">Memory Composition</span></div>
-          <ResponsiveContainer width="100%" height={180}>
-            <AreaChart data={memComposition.slice(-60)}>
-              <defs>
-                <linearGradient id="mem-used" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity={0.4} /><stop offset="100%" stopColor="var(--accent)" stopOpacity={0} /></linearGradient>
-                <linearGradient id="mem-cache" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--yellow)" stopOpacity={0.4} /><stop offset="100%" stopColor="var(--yellow)" stopOpacity={0} /></linearGradient>
-                <linearGradient id="mem-free" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--green)" stopOpacity={0.4} /><stop offset="100%" stopColor="var(--green)" stopOpacity={0} /></linearGradient>
-              </defs>
-              <Area type="monotone" dataKey="used" stackId="1" stroke="var(--accent)" fill="url(#mem-used)" strokeWidth={1} dot={false} isAnimationActive={false} />
-              <Area type="monotone" dataKey="cache" stackId="1" stroke="var(--yellow)" fill="url(#mem-cache)" strokeWidth={1} dot={false} isAnimationActive={false} />
-              <Area type="monotone" dataKey="free" stackId="1" stroke="var(--green)" fill="url(#mem-free)" strokeWidth={1} dot={false} isAnimationActive={false} />
-            </AreaChart>
-          </ResponsiveContainer>
-          <div style={{ display: 'flex', gap: 20, justifyContent: 'center', marginTop: 8 }}>
-            <LegendItem color="var(--accent)" label={`Used ${memory.used.toFixed(1)} GB`} />
-            <LegendItem color="var(--yellow)" label={`Cache ${Math.max(0, memory.total - memory.used - memory.available).toFixed(1)} GB`} />
-            <LegendItem color="var(--green)" label={`Free ${memory.available.toFixed(1)} GB`} />
+        {config?.showMemComposition !== false && (
+          <div className="card">
+            <div className="card-header"><span className="card-title">Memory Composition</span></div>
+            <ResponsiveContainer width="100%" height={180}>
+              <AreaChart data={memComposition.slice(-60)}>
+                <defs>
+                  <linearGradient id="mem-used" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity={0.4} /><stop offset="100%" stopColor="var(--accent)" stopOpacity={0} /></linearGradient>
+                  <linearGradient id="mem-cache" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--yellow)" stopOpacity={0.4} /><stop offset="100%" stopColor="var(--yellow)" stopOpacity={0} /></linearGradient>
+                  <linearGradient id="mem-free" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--green)" stopOpacity={0.4} /><stop offset="100%" stopColor="var(--green)" stopOpacity={0} /></linearGradient>
+                </defs>
+                <Area type="monotone" dataKey="used" stackId="1" stroke="var(--accent)" fill="url(#mem-used)" strokeWidth={1} dot={false} isAnimationActive={false} />
+                <Area type="monotone" dataKey="cache" stackId="1" stroke="var(--yellow)" fill="url(#mem-cache)" strokeWidth={1} dot={false} isAnimationActive={false} />
+                <Area type="monotone" dataKey="free" stackId="1" stroke="var(--green)" fill="url(#mem-free)" strokeWidth={1} dot={false} isAnimationActive={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+            <div style={{ display: 'flex', gap: 20, justifyContent: 'center', marginTop: 8 }}>
+              <LegendItem color="var(--accent)" label={`Used ${memory.used.toFixed(1)} GB`} />
+              <LegendItem color="var(--yellow)" label={`Cache ${Math.max(0, memory.total - memory.used - memory.available).toFixed(1)} GB`} />
+              <LegendItem color="var(--green)" label={`Free ${memory.available.toFixed(1)} GB`} />
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="card">
-          <div className="card-header"><span className="card-title">Disk Activity</span></div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {latestDiskActivity.map((act) => (
-              <div key={act.name}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, fontWeight: 500 }}>Disk {act.name}</span>
-                  <span className="text-sm text-muted">Read {act.read} MB/s · Write {act.write} MB/s</span>
-                </div>
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <div style={{ flex: 1 }}>
-                    <div className="text-sm text-muted" style={{ marginBottom: 2 }}>Read</div>
-                    <div style={{ height: 6, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${Math.min(100, act.read / 5)}%`, borderRadius: 3, background: 'var(--accent)', transition: 'width 0.5s ease' }} />
+        {config?.showDiskActivity !== false && (
+          <div className="card">
+            <div className="card-header"><span className="card-title">Disk Activity</span></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {latestDiskActivity.map((act) => (
+                <div key={act.name}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>Disk {act.name}</span>
+                    <span className="text-sm text-muted">Read {act.read} MB/s · Write {act.write} MB/s</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <div className="text-sm text-muted" style={{ marginBottom: 2 }}>Read</div>
+                      <div style={{ height: 6, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${Math.min(100, act.read / 5)}%`, borderRadius: 3, background: 'var(--accent)', transition: 'width 0.5s ease' }} />
+                      </div>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div className="text-sm text-muted" style={{ marginBottom: 2 }}>Write</div>
+                      <div style={{ height: 6, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${Math.min(100, act.write / 3)}%`, borderRadius: 3, background: 'var(--green)', transition: 'width 0.5s ease' }} />
+                      </div>
                     </div>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div className="text-sm text-muted" style={{ marginBottom: 2 }}>Write</div>
-                    <div style={{ height: 6, background: 'var(--bg-tertiary)', borderRadius: 3, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${Math.min(100, act.write / 3)}%`, borderRadius: 3, background: 'var(--green)', transition: 'width 0.5s ease' }} />
-                    </div>
-                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Performance History Tabs */}
@@ -462,6 +532,9 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
+
+      {/* Theme Panel */}
+      {themePanelOpen && <ThemePanel onClose={() => setThemePanelOpen(false)} />}
     </div>
   );
 }

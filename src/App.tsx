@@ -52,6 +52,7 @@ import PerfOverlay from './components/PerfOverlay';
 import TitleBar from './components/TitleBar';
 import { useAppStore } from './stores/appStore';
 import { useHardwareStore } from './stores/hardwareStore';
+import { useThemeStore } from './stores/themeStore';
 
 function MainContent() {
   const { currentPage } = useAppStore();
@@ -162,6 +163,11 @@ export default function App() {
   const { chatPanelOpen } = useAppStore();
   const startPolling = useHardwareStore((s) => s.startPolling);
   const stopPolling = useHardwareStore((s) => s.stopPolling);
+  const loadTheme = useThemeStore((s) => s.loadTheme);
+
+  useEffect(() => {
+    loadTheme();
+  }, [loadTheme]);
 
   useEffect(() => {
     startPolling();
