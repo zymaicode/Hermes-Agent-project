@@ -66,6 +66,7 @@ import { optimizeForGaming, restoreAfterGaming, getActiveOptimization } from './
 import { startRecording as fpsStartRecording, stopRecording as fpsStopRecording, getFpsHistory, getSessionDetail, clearFpsHistory } from './game/fpsRecorder';
 import { getGameConfig, getAllGameConfigs, saveGameConfig, deleteGameConfig } from './game/gameConfig';
 import { getTheme, saveTheme, getThemeDefaults, getThemeCSSVars } from './theme/index';
+import { getWidgetLayout, saveWidgetLayout, getWidgetDefaults } from './widget/widgetManager';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -1397,6 +1398,11 @@ function registerIpcHandlers(): void {
   ipcMain.handle('pchelper:open-external', (_event, url: string) => {
     shell.openExternal(url);
   });
+
+  // Widget Layout
+  ipcMain.handle('pchelper:get-widget-layout', async () => getWidgetLayout());
+  ipcMain.handle('pchelper:save-widget-layout', async (_, layout) => { saveWidgetLayout(layout); return true; });
+  ipcMain.handle('pchelper:get-widget-defaults', async () => getWidgetDefaults());
 }
 
 app.whenReady().then(() => {

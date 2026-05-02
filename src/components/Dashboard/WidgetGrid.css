@@ -1,0 +1,93 @@
+.widget-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.widget-grid.layout-vertical {
+  grid-template-columns: 1fr;
+}
+.widget-grid.layout-compact {
+  gap: 8px;
+}
+
+.widget-item {
+  background: var(--dash-card-bg, var(--card-bg));
+  border: 1px solid var(--dash-card-border, var(--card-border));
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  min-height: 100px;
+}
+.widget-item.dragging {
+  opacity: 0.4;
+  border-style: dashed;
+}
+.widget-item.drag-over {
+  border-color: var(--dash-accent, var(--accent));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--dash-accent, var(--accent)) 30%, transparent);
+}
+.widget-item.highlighted {
+  animation: widgetPulseGlow 0.5s ease;
+}
+@keyframes widgetPulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 12px 2px color-mix(in srgb, var(--dash-accent, var(--accent)) 40%, transparent); }
+}
+.widget-item.width-1 { grid-column: span 1; }
+.widget-item.width-2 { grid-column: span 2; }
+.widget-item.width-3 { grid-column: span 3; }
+.widget-item.width-4 { grid-column: span 4; }
+.widget-item.compact { min-height: 80px; }
+.widget-item.tall { min-height: 250px; }
+.widget-item.minimized { min-height: 40px; }
+.widget-item.minimized .widget-body { display: none; }
+.widget-item.layout-vertical.width-1,
+.widget-item.layout-vertical.width-2,
+.widget-item.layout-vertical.width-3,
+.widget-item.layout-vertical.width-4 { grid-column: span 1; }
+
+.widget-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  cursor: grab;
+  user-select: none;
+  border-bottom: 1px solid transparent;
+}
+.widget-header:active { cursor: grabbing; }
+.widget-header:hover {
+  background: color-mix(in srgb, var(--dash-accent, var(--accent)) 6%, transparent);
+}
+.widget-drag-handle {
+  cursor: grab;
+  opacity: 0.3;
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+}
+.widget-drag-handle:hover { opacity: 0.7; }
+.widget-title {
+  font-size: 13px;
+  font-weight: 600;
+  flex: 1;
+}
+.widget-collapse-btn {
+  cursor: pointer;
+  opacity: 0.4;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+}
+.widget-collapse-btn:hover { opacity: 0.8; }
+
+.widget-body {
+  padding: 10px 14px;
+}
+.widget-empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}

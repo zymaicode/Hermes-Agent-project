@@ -36,6 +36,7 @@ import type { PortScanResult } from '../../electron/netdiag/portscanner';
 import type { DnsLookupResult } from '../../electron/netdiag/dns';
 import type { BandwidthResult } from '../../electron/netdiag/bandwidth';
 import type { ThemeConfig } from '../../electron/theme/types';
+import type { WidgetLayout } from '../../electron/widget/types';
 
 export {};
 
@@ -444,6 +445,11 @@ declare global {
       saveTheme: (config: ThemeConfig) => Promise<true>;
       getThemeDefaults: () => Promise<ThemeConfig>;
       getThemeCSSVars: (themeName: string) => Promise<Record<string, string>>;
+
+      // Widget Layout
+      getWidgetLayout: () => Promise<WidgetLayout>;
+      saveWidgetLayout: (layout: WidgetLayout) => Promise<true>;
+      getWidgetDefaults: () => Promise<WidgetLayout>;
     };
   }
 

@@ -53,6 +53,7 @@ import TitleBar from './components/TitleBar';
 import { useAppStore } from './stores/appStore';
 import { useHardwareStore } from './stores/hardwareStore';
 import { useThemeStore } from './stores/themeStore';
+import { useWidgetStore } from './stores/widgetStore';
 
 function MainContent() {
   const { currentPage } = useAppStore();
@@ -164,10 +165,15 @@ export default function App() {
   const startPolling = useHardwareStore((s) => s.startPolling);
   const stopPolling = useHardwareStore((s) => s.stopPolling);
   const loadTheme = useThemeStore((s) => s.loadTheme);
+  const loadWidgetLayout = useWidgetStore((s) => s.loadLayout);
 
   useEffect(() => {
     loadTheme();
   }, [loadTheme]);
+
+  useEffect(() => {
+    loadWidgetLayout();
+  }, [loadWidgetLayout]);
 
   useEffect(() => {
     startPolling();

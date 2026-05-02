@@ -452,4 +452,9 @@ contextBridge.exposeInMainWorld('pchelper', {
   saveTheme: (config: any) => ipcRenderer.invoke('pchelper:save-theme', config),
   getThemeDefaults: () => ipcRenderer.invoke('pchelper:get-theme-defaults'),
   getThemeCSSVars: (themeName: string) => ipcRenderer.invoke('pchelper:get-theme-css-vars', themeName),
+
+  // Widget Layout
+  getWidgetLayout: () => ipcRenderer.invoke('pchelper:get-widget-layout'),
+  saveWidgetLayout: (layout: any) => ipcRenderer.invoke('pchelper:save-widget-layout', layout),
+  getWidgetDefaults: () => ipcRenderer.invoke('pchelper:get-widget-defaults'),
 });
