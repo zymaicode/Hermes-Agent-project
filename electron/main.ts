@@ -67,6 +67,10 @@ import { startRecording as fpsStartRecording, stopRecording as fpsStopRecording,
 import { getGameConfig, getAllGameConfigs, saveGameConfig, deleteGameConfig } from './game/gameConfig';
 import { getTheme, saveTheme, getThemeDefaults, getThemeCSSVars } from './theme/index';
 import { getWidgetLayout, saveWidgetLayout, getWidgetDefaults } from './widget/widgetManager';
+import { LanScanner } from './network/lanScanner';
+import { DnsCacheManager } from './network/dnsCache';
+import { BandwidthTop } from './network/bandwidthTop';
+import { saveSpeedTest, getSpeedTestHistory, clearSpeedTestHistory, getSpeedTestStats, getSpeedTestTopResults } from './network/speedTestHistoryBridge';
 import type { HardwareSnapshot } from './hardware/collector';
 import { initTray, updateTrayStats, showTrayNotification, destroyTray } from './trayManager';
 
@@ -122,6 +126,9 @@ const uacManager = new UacManager();
 const credentialManager = new CredentialManager();
 const policyManager = new PolicyManager();
 const deviceManager = new DeviceManager();
+const lanScanner = new LanScanner();
+const dnsCacheManager = new DnsCacheManager();
+const bandwidthTop = new BandwidthTop();
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -584,9 +591,28 @@ function registerIpcHandlers(): void {
     networkMonitor.getTraffic()
   );
 
-  ipcMain.handle('pchelper:run-speed-test', () =>
-    networkMonitor.getSpeedTestResults()
-  );
+  ipcMain.handle('pchelper:run-speed-test', () => {
+    const result = networkMonitor.getSpeedTestResults();
+    try { saveSpeedTest(result); } catch { /* DB not available */ }
+    return result;
+  });
+
+  // LAN Scanner
+  ipcMain.handle('pchelper:scan-lan-devices', async () => lanScanner.scan());
+  ipcMain.handle('pchelper:refresh-lan-devices', async () => lanScanner.refresh());
+
+  // DNS Cache
+  ipcMain.handle('pchelper:get-dns-cache', async () => dnsCacheManager.getCache());
+  ipcMain.handle('pchelper:flush-dns-cache', async () => dnsCacheManager.flushCache());
+
+  // Bandwidth Top
+  ipcMain.handle('pchelper:get-bandwidth-top', async () => bandwidthTop.getTopProcesses());
+
+  // Speed Test History
+  ipcMain.handle('pchelper:get-speed-test-history', async () => getSpeedTestHistory());
+  ipcMain.handle('pchelper:get-speed-test-stats', async () => getSpeedTestStats());
+  ipcMain.handle('pchelper:get-speed-test-top-results', async () => getSpeedTestTopResults());
+  ipcMain.handle('pchelper:clear-speed-test-history', async () => { clearSpeedTestHistory(); return true; });
 
   // Process Monitor
   ipcMain.handle('pchelper:get-processes', () =>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Wifi, Network, Bluetooth, Activity, Gauge, Globe } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { useNetworkStore } from '../../stores/networkStore';
+import NetworkTools from './networkTools';
 import type { NetworkInterface } from '../../utils/types';
 
 const IFACE_ICON: Record<string, React.ComponentType<{ size?: number }>> = {
@@ -171,6 +172,9 @@ export default function NetworkView() {
           </div>
         </div>
       )}
+
+      {/* Network Tools — Phase D: LAN Scan, DNS Cache, Bandwidth Top, Speed History */}
+      <NetworkTools />
     </div>
   );
 }

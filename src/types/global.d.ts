@@ -37,6 +37,9 @@ import type { DnsLookupResult } from '../../electron/netdiag/dns';
 import type { BandwidthResult } from '../../electron/netdiag/bandwidth';
 import type { ThemeConfig } from '../../electron/theme/types';
 import type { WidgetLayout } from '../../electron/widget/types';
+import type { LanDevice } from '../../electron/network/lanScanner';
+import type { DnsCacheEntry } from '../../electron/network/dnsCache';
+import type { BandwidthProcess } from '../../electron/network/bandwidthTop';
 
 export {};
 
@@ -128,6 +131,15 @@ declare global {
       getNetworkInterfaces: () => Promise<NetworkInterface[]>;
       getNetworkTraffic: () => Promise<NetworkTraffic>;
       runSpeedTest: () => Promise<SpeedTestResult>;
+      scanLanDevices: () => Promise<LanDevice[]>;
+      refreshLanDevices: () => Promise<LanDevice[]>;
+      getDnsCache: () => Promise<DnsCacheEntry[]>;
+      flushDnsCache: () => Promise<{ success: boolean; cleared: number }>;
+      getBandwidthTop: () => Promise<BandwidthProcess[]>;
+      getSpeedTestHistory: () => Promise<SpeedTestResult[]>;
+      getSpeedTestStats: () => Promise<{ avgDownload: number; avgUpload: number; avgPing: number; count: number }>;
+      getSpeedTestTopResults: () => Promise<{ maxDownload: SpeedTestResult | null; maxUpload: SpeedTestResult | null; minPing: SpeedTestResult | null }>;
+      clearSpeedTestHistory: () => Promise<true>;
 
       // Process Monitor
       getProcesses: () => Promise<ProcessEntry[]>;

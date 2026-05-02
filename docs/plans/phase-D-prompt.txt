@@ -1,0 +1,429 @@
+## Phase D: 网络工具聚合
+
+项目：PCHelper (pc-toolkit) — Windows 系统工具，Electron + React + Vite + TypeScript + Zustand + better-sqlite3 + Recharts + lucide-react
+
+### Task
+
+在 NetworkView 中添加 4 个新功能面板：LAN 设备发现、DNS 缓存查看/刷新、带宽 Top 排行、速度测试历史。同时使用新窗口打开 standalone 网络诊断工具。
+
+### Files to create:
+
+#### 1. `electron/network/lanScanner.ts` — LAN 设备发现
+```typescript
+export interface LanDevice {
+  ip: string;
+  mac: string;
+  hostname: string;
+  vendor: string;
+  status: 'online' | 'offline';
+  lastSeen: string;
+  openPorts: number[];
+}
+
+// 模拟数据 — 真实环境用 arp -a / nmap
+const MOCK_DEVICES: LanDevice[] = [
+  { ip: '192.168.1.1',   mac: '00:11:22:33:44:01', hostname: 'router.home',            vendor: 'TP-Link',       status: 'online', lastSeen: new Date().toISOString(), openPorts: [80, 443, 53] },
+  { ip: '192.168.1.50',  mac: '00:11:22:33:44:50', hostname: 'nas.home',               vendor: 'Synology',      status: 'online', lastSeen: new Date().toISOString(), openPorts: [5000, 5001, 22] },
+  { ip: '192.168.1.101', mac: 'AA:BB:CC:DD:EE:01', hostname: 'workstation',           vendor: 'Intel Corp',    status: 'online', lastSeen: new Date().toISOString(), openPorts: [] },
+  { ip: '192.168.1.102', mac: 'AA:BB:CC:DD:EE:02', hostname: 'media-pc',              vendor: 'ASUSTek',       status: 'online', lastSeen: new Date().toISOString(), openPorts: [3389] },
+  { ip: '192.168.1.150', mac: '00:11:22:33:44:A0', hostname: 'smart-tv',              vendor: 'Samsung',       status: 'online', lastSeen: new Date().toISOString(), openPorts: [80, 443] },
+  { ip: '192.168.1.200', mac: '00:11:22:33:44:C0', hostname: 'printer-office',        vendor: 'HP',            status: 'offline', lastSeen: new Date(Date.now() - 86400000).toISOString(), openPorts: [] },
+  { ip: '192.168.1.55',  mac: '00:11:22:33:44:55', hostname: 'raspberry-pi',          vendor: 'Raspberry Pi',  status: 'online', lastSeen: new Date().toISOString(), openPorts: [22, 80] },
+  { ip: '192.168.1.75',  mac: '00:11:22:33:44:75', hostname: 'esp32-sensor',          vendor: 'Espressif',     status: 'online', lastSeen: new Date().toISOString(), openPorts: [80] },
+];
+
+export class LanScanner {
+  scan(): LanDevice[] {
+    // 模拟扫描延迟，返回带轻微随机变化的设备列表
+    return MOCK_DEVICES.map(d => ({
+      ...d,
+      status: Math.random() > 0.15 ? 'online' as const : 'offline' as const,
+      lastSeen: new Date().toISOString(),
+    }));
+  }
+
+  refresh(): LanDevice[] {
+    return this.scan();
+  }
+}
+```
+
+#### 2. `electron/network/dnsCache.ts` — DNS 缓存查看器
+```typescript
+export interface DnsCacheEntry {
+  name: string;
+  type: string; // A, AAAA, CNAME, MX, etc.
+  ttl: number;
+  length: number;
+  section: string;
+}
+
+// 模拟 Windows ipconfig /displaydns 输出
+const MOCK_DNS_CACHE: DnsCacheEntry[] = [
+  { name: 'google.com',              type: 'A',     ttl: 245, length: 4,   section: 'Answer' },
+  { name: 'google.com',              type: 'AAAA',  ttl: 245, length: 16,  section: 'Answer' },
+  { name: 'youtube.com',             type: 'A',     ttl: 182, length: 4,   section: 'Answer' },
+  { name: 'github.com',              type: 'A',     ttl: 58,  length: 4,   section: 'Answer' },
+  { name: 'microsoft.com',           type: 'A',     ttl: 120, length: 4,   section: 'Answer' },
+  { name: 'cdn.jsdelivr.net',        type: 'CNAME', ttl: 300, length: 8,   section: 'Answer' },
+  { name: 'api.deepseek.com',        type: 'A',     ttl: 60,  length: 4,   section: 'Answer' },
+  { name: 'stackoverflow.com',       type: 'A',     ttl: 89,  length: 4,   section: 'Answer' },
+  { name: 'npmjs.com',               type: 'A',     ttl: 180, length: 4,   section: 'Answer' },
+  { name: 'wikipedia.org',           type: 'AAAA',  ttl: 300, length: 16,  section: 'Answer' },
+  { name: 'reddit.com',              type: 'A',     ttl: 43,  length: 4,   section: 'Answer' },
+  { name: 'amazon.com',              type: 'A',     ttl: 210, length: 4,   section: 'Answer' },
+  { name: 'bing.com',                type: 'CNAME', ttl: 3600, length: 8,  section: 'Answer' },
+  { name: 'localhost',               type: 'A',     ttl: 86400, length: 4, section: 'Answer' },
+];
+
+export class DnsCacheManager {
+  getCache(): DnsCacheEntry[] {
+    return MOCK_DNS_CACHE.map(e => ({
+      ...e,
+      ttl: Math.max(0, e.ttl - Math.floor(Math.random() * 10)),
+    }));
+  }
+
+  flushCache(): { success: boolean; cleared: number } {
+    return { success: true, cleared: MOCK_DNS_CACHE.length };
+  }
+
+  getCacheSize(): number {
+    return MOCK_DNS_CACHE.length;
+  }
+}
+```
+
+#### 3. `electron/network/bandwidthTop.ts` — 带宽占用 Top 排行
+```typescript
+export interface BandwidthProcess {
+  pid: number;
+  processName: string;
+  downloadSpeed: number; // Kbps
+  uploadSpeed: number;   // Kbps
+  totalBytes: number;    // MB
+  protocol: string;
+  remoteAddress: string;
+}
+
+const MOCK_PROCESSES: BandwidthProcess[] = [
+  { pid: 1234, processName: 'chrome.exe',       downloadSpeed: 2450, uploadSpeed: 320,  totalBytes: 890,  protocol: 'TCP', remoteAddress: '142.250.80.46:443' },
+  { pid: 5678, processName: 'steam.exe',        downloadSpeed: 8500, uploadSpeed: 120,  totalBytes: 12000, protocol: 'TCP', remoteAddress: '155.133.248.34:27015' },
+  { pid: 9012, processName: 'discord.exe',      downloadSpeed: 180,  uploadSpeed: 45,   totalBytes: 210,  protocol: 'UDP', remoteAddress: '162.159.136.232:443' },
+  { pid: 3456, processName: 'dropbox.exe',      downloadSpeed: 670,  uploadSpeed: 1200, totalBytes: 3400, protocol: 'TCP', remoteAddress: '199.47.216.179:443' },
+  { pid: 7890, processName: 'bittorrent.exe',   downloadSpeed: 3200, uploadSpeed: 2100, totalBytes: 8500, protocol: 'TCP', remoteAddress: '85.17.186.131:6881' },
+  { pid: 2345, processName: 'system',           downloadSpeed: 50,   uploadSpeed: 30,   totalBytes: 120,  protocol: 'TCP', remoteAddress: '13.107.4.52:80' },
+  { pid: 6789, processName: 'svchost.exe',      downloadSpeed: 95,   uploadSpeed: 60,   totalBytes: 180,  protocol: 'UDP', remoteAddress: '52.96.36.138:443' },
+  { pid: 1111, processName: 'spotify.exe',      downloadSpeed: 320,  uploadSpeed: 8,    totalBytes: 450,  protocol: 'TCP', remoteAddress: '35.186.224.27:443' },
+];
+
+export class BandwidthTop {
+  getTopProcesses(limit: number = 10): BandwidthProcess[] {
+    return [...MOCK_PROCESSES]
+      .sort((a, b) => (b.downloadSpeed + b.uploadSpeed) - (a.downloadSpeed + a.uploadSpeed))
+      .slice(0, limit)
+      .map(p => ({
+        ...p,
+        downloadSpeed: Math.max(10, p.downloadSpeed + (Math.random() - 0.5) * 200),
+        uploadSpeed: Math.max(5, p.uploadSpeed + (Math.random() - 0.5) * 50),
+      }));
+  }
+
+  getTotalBw(): { totalDownload: number; totalUpload: number } {
+    return MOCK_PROCESSES.reduce(
+      (acc, p) => ({ totalDownload: acc.totalDownload + p.downloadSpeed, totalUpload: acc.totalUpload + p.uploadSpeed }),
+      { totalDownload: 0, totalUpload: 0 }
+    );
+  }
+}
+```
+
+#### 4. `electron/network/speedTestHistory.ts` — 速度测试历史
+```typescript
+import Database from 'better-sqlite3';
+import path from 'path';
+import { app } from 'electron';
+import type { SpeedTestResult } from '../../src/utils/types';
+
+const dbPath = path.join(app.getPath('userData'), 'speedtest.db');
+
+let db: Database.Database | null = null;
+
+function getDb(): Database.Database {
+  if (!db) {
+    db = new Database(dbPath);
+    db.pragma('journal_mode = WAL');
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS speedtest_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        download REAL NOT NULL,
+        upload REAL NOT NULL,
+        ping INTEGER NOT NULL,
+        timestamp INTEGER NOT NULL
+      )
+    `);
+  }
+  return db;
+}
+
+export function saveSpeedTest(result: SpeedTestResult): void {
+  getDb().prepare(
+    'INSERT INTO speedtest_history (download, upload, ping, timestamp) VALUES (?, ?, ?, ?)'
+  ).run(result.download, result.upload, result.ping, result.timestamp);
+}
+
+export function getSpeedTestHistory(limit: number = 20): SpeedTestResult[] {
+  const rows = getDb().prepare(
+    'SELECT download, upload, ping, timestamp FROM speedtest_history ORDER BY timestamp DESC LIMIT ?'
+  ).all(limit) as SpeedTestResult[];
+  return rows;
+}
+
+export function clearSpeedTestHistory(): void {
+  getDb().prepare('DELETE FROM speedtest_history').run();
+}
+
+export function getSpeedTestStats(): { avgDownload: number; avgUpload: number; avgPing: number; count: number } {
+  const row = getDb().prepare(
+    'SELECT AVG(download) as avgDownload, AVG(upload) as avgUpload, AVG(ping) as avgPing, COUNT(*) as count FROM speedtest_history'
+  ).get() as { avgDownload: number; avgUpload: number; avgPing: number; count: number };
+  return row || { avgDownload: 0, avgUpload: 0, avgPing: 0, count: 0 };
+}
+
+export function getSpeedTestTopResults(): { maxDownload: SpeedTestResult | null; maxUpload: SpeedTestResult | null; minPing: SpeedTestResult | null } {
+  const maxDl = getDb().prepare('SELECT download, upload, ping, timestamp FROM speedtest_history ORDER BY download DESC LIMIT 1').get() as SpeedTestResult | undefined;
+  const maxUl = getDb().prepare('SELECT download, upload, ping, timestamp FROM speedtest_history ORDER BY upload DESC LIMIT 1').get() as SpeedTestResult | undefined;
+  const minPg = getDb().prepare('SELECT download, upload, ping, timestamp FROM speedtest_history ORDER BY ping ASC LIMIT 1').get() as SpeedTestResult | undefined;
+  return { maxDownload: maxDl ?? null, maxUpload: maxUl ?? null, minPing: minPg ?? null };
+}
+```
+
+#### 5. `electron/network/speedTestHistoryBridge.ts` — barrel export
+```typescript
+export * from './speedTestHistory';
+```
+
+#### 6. `src/stores/networkToolsStore.ts` — 新网络工具 store
+```typescript
+import { create } from 'zustand';
+import type { LanDevice } from '../../electron/network/lanScanner';
+import type { DnsCacheEntry } from '../../electron/network/dnsCache';
+import type { BandwidthProcess } from '../../electron/network/bandwidthTop';
+import type { SpeedTestResult } from '../utils/types';
+
+interface NetworkToolsState {
+  // LAN Scanner
+  lanDevices: LanDevice[];
+  lanScanning: boolean;
+  lanLastScan: number;
+
+  // DNS Cache
+  dnsCache: DnsCacheEntry[];
+  dnsLoading: boolean;
+
+  // Bandwidth Top
+  bwProcesses: BandwidthProcess[];
+  bwLoading: boolean;
+
+  // Speed Test History
+  speedHistory: SpeedTestResult[];
+  speedStats: { avgDownload: number; avgUpload: number; avgPing: number; count: number } | null;
+  speedTopResults: { maxDownload: SpeedTestResult | null; maxUpload: SpeedTestResult | null; minPing: SpeedTestResult | null } | null;
+
+  // Actions
+  scanLan: () => Promise<void>;
+  refreshLan: () => Promise<void>;
+  loadDnsCache: () => Promise<void>;
+  flushDnsCache: () => Promise<{ success: boolean; cleared: number }>;
+  loadBwTop: () => Promise<void>;
+  loadSpeedHistory: () => Promise<void>;
+  clearSpeedHistory: () => Promise<void>;
+}
+
+export const useNetworkToolsStore = create<NetworkToolsState>((set) => ({
+  lanDevices: [],
+  lanScanning: false,
+  lanLastScan: 0,
+
+  dnsCache: [],
+  dnsLoading: false,
+
+  bwProcesses: [],
+  bwLoading: false,
+
+  speedHistory: [],
+  speedStats: null,
+  speedTopResults: null,
+
+  scanLan: async () => {
+    set({ lanScanning: true });
+    const devices: LanDevice[] = await window.pchelper.scanLanDevices();
+    set({ lanDevices: devices, lanScanning: false, lanLastScan: Date.now() });
+  },
+
+  refreshLan: async () => {
+    const devices: LanDevice[] = await window.pchelper.refreshLanDevices();
+    set({ lanDevices: devices, lanLastScan: Date.now() });
+  },
+
+  loadDnsCache: async () => {
+    set({ dnsLoading: true });
+    const cache: DnsCacheEntry[] = await window.pchelper.getDnsCache();
+    set({ dnsCache: cache, dnsLoading: false });
+  },
+
+  flushDnsCache: async () => {
+    const result = await window.pchelper.flushDnsCache();
+    set({ dnsCache: [] });
+    return result;
+  },
+
+  loadBwTop: async () => {
+    set({ bwLoading: true });
+    const processes: BandwidthProcess[] = await window.pchelper.getBandwidthTop();
+    set({ bwProcesses: processes, bwLoading: false });
+  },
+
+  loadSpeedHistory: async () => {
+    const history: SpeedTestResult[] = await window.pchelper.getSpeedTestHistory();
+    const stats = await window.pchelper.getSpeedTestStats();
+    const topResults = await window.pchelper.getSpeedTestTopResults();
+    set({ speedHistory: history, speedStats: stats, speedTopResults: topResults });
+  },
+
+  clearSpeedHistory: async () => {
+    await window.pchelper.clearSpeedTestHistory();
+    set({ speedHistory: [], speedStats: null, speedTopResults: null });
+  },
+}));
+```
+
+#### 7. `src/components/NetworkView/networkTools.tsx` — 4 个新功能面板组件
+
+**文件内容**：4 个独立的选项卡/卡片组件，放在一个文件中：
+
+1. `LanScannerPanel` — LAN 设备发现
+   - 状态：扫描中/已完成/未扫描
+   - 设备列表：图标（Monitor/Smartphone/Server 根据 vendor）+ IP + 主机名 + 厂商 + 状态灯(online=绿/offline=灰) + 开放端口数
+   - 点击设备行展开详情（MAC、最后在线时间、端口列表）
+   - 顶部：扫描按钮 + 设备总数显示 + 在线/离线计数
+
+2. `DnsCachePanel` — DNS 缓存查看器
+   - 表格：域名、类型、TTL、长度 列
+   - 按域名搜索过滤
+   - 刷新 DNS 缓存按钮（弹出确认）
+   - 缓存条目总数统计
+
+3. `BandwidthTopPanel` — 带宽占用 Top
+   - 表格：进程名、下载速度、上传速度、总流量、协议、远程地址
+   - 按总带宽排序（下载+上传）
+   - 颜色：下载速度用 accent 色，上传速度用 green 色
+   - 顶部：总带宽统计 + 刷新按钮
+   - 每行有迷你条形图表示使用占比
+
+4. `SpeedHistoryPanel` — 速度测试历史
+   - 统计行：平均下载/上传/延迟 + Best 记录（最高下载/最高上传/最低延迟）
+   - 历史列表卡片：每次测试一行，显示下载/上传/延迟 + 时间
+   - 清除历史按钮
+   - 使用 Recharts 迷你图表展示趋势（下载和上传双线图）
+
+CSS：直接在内部使用内联样式或附加 CSS 文件 `src/components/NetworkView/networkTools.css`
+
+### Files to modify:
+
+#### 1. `electron/main.ts` — 注册 4 组新 IPC handlers
+
+```typescript
+// LAN Scanner
+import { LanScanner } from './network/lanScanner';
+import { DnsCacheManager } from './network/dnsCache';
+import { BandwidthTop } from './network/bandwidthTop';
+import { saveSpeedTest, getSpeedTestHistory, clearSpeedTestHistory, getSpeedTestStats, getSpeedTestTopResults } from './network/speedTestHistoryBridge';
+
+// 在 registerIpcHandlers 中添加
+
+// LAN Scanner
+const lanScanner = new LanScanner();
+ipcMain.handle('pchelper:scan-lan-devices', async () => lanScanner.scan());
+ipcMain.handle('pchelper:refresh-lan-devices', async () => lanScanner.refresh());
+
+// DNS Cache
+const dnsCacheManager = new DnsCacheManager();
+ipcMain.handle('pchelper:get-dns-cache', async () => dnsCacheManager.getCache());
+ipcMain.handle('pchelper:flush-dns-cache', async () => dnsCacheManager.flushCache());
+
+// Bandwidth Top
+const bandwidthTop = new BandwidthTop();
+ipcMain.handle('pchelper:get-bandwidth-top', async () => bandwidthTop.getTopProcesses());
+
+// Speed Test History
+ipcMain.handle('pchelper:get-speed-test-history', async () => getSpeedTestHistory());
+ipcMain.handle('pchelper:get-speed-test-stats', async () => getSpeedTestStats());
+ipcMain.handle('pchelper:get-speed-test-top-results', async () => getSpeedTestTopResults());
+ipcMain.handle('pchelper:clear-speed-test-history', async () => { clearSpeedTestHistory(); return true; });
+
+// 修改原有的 runSpeedTest handler 使其保存结果到历史
+// 在 registerIpcHandlers 中找到原有的 speedtest handler，修改为保存结果：
+// 找到类似: ipcMain.handle('pchelper:run-speed-test', ...) 或 networkMonitor.getSpeedTestResults()
+// 修改为：
+// ipcMain.handle('pchelper:run-speed-test', async () => {
+//   const result = networkMonitor.getSpeedTestResults();
+//   saveSpeedTest(result);
+//   return result;
+// });
+```
+
+#### 2. `electron/preload.ts` — 暴露新 API
+
+```typescript
+// 在 contextBridge 添加
+scanLanDevices: () => ipcRenderer.invoke('pchelper:scan-lan-devices'),
+refreshLanDevices: () => ipcRenderer.invoke('pchelper:refresh-lan-devices'),
+getDnsCache: () => ipcRenderer.invoke('pchelper:get-dns-cache'),
+flushDnsCache: () => ipcRenderer.invoke('pchelper:flush-dns-cache'),
+getBandwidthTop: () => ipcRenderer.invoke('pchelper:get-bandwidth-top'),
+getSpeedTestHistory: () => ipcRenderer.invoke('pchelper:get-speed-test-history'),
+getSpeedTestStats: () => ipcRenderer.invoke('pchelper:get-speed-test-stats'),
+getSpeedTestTopResults: () => ipcRenderer.invoke('pchelper:get-speed-test-top-results'),
+clearSpeedTestHistory: () => ipcRenderer.invoke('pchelper:clear-speed-test-history'),
+```
+
+#### 3. `src/types/global.d.ts` — 添加类型和 API 声明
+
+```typescript
+// 在 import 区域添加
+import type { LanDevice } from '../../electron/network/lanScanner';
+import type { DnsCacheEntry } from '../../electron/network/dnsCache';
+import type { BandwidthProcess } from '../../electron/network/bandwidthTop';
+
+// 在 Window.pchelper interface 末尾添加
+scanLanDevices: () => Promise<LanDevice[]>;
+refreshLanDevices: () => Promise<LanDevice[]>;
+getDnsCache: () => Promise<DnsCacheEntry[]>;
+flushDnsCache: () => Promise<{ success: boolean; cleared: number }>;
+getBandwidthTop: () => Promise<BandwidthProcess[]>;
+getSpeedTestHistory: () => Promise<SpeedTestResult[]>;
+getSpeedTestStats: () => Promise<{ avgDownload: number; avgUpload: number; avgPing: number; count: number }>;
+getSpeedTestTopResults: () => Promise<{ maxDownload: SpeedTestResult | null; maxUpload: SpeedTestResult | null; minPing: SpeedTestResult | null }>;
+clearSpeedTestHistory: () => Promise<true>;
+```
+
+#### 4. `src/components/NetworkView/index.tsx` — 集成新面板
+
+**重构方案**：
+1. 保留顶部接口卡片和实时流量
+2. 在实时流量下方添加 4 个标签页：
+   - Tabs: LAN 扫描 | DNS 缓存 | 带宽 Top | 测速历史
+   - 使用类似 Dashboard 的 tab 切换样式
+   - 每个 tab 渲染对应的面板组件
+3. 速度测试按钮放在测速历史 tab 的顶部
+4. 首次渲染时自动加载各面板数据
+
+### IMPORTANT:
+- 只读现有文件，不要删除或重写任何已有功能
+- 新模块全部放在 `electron/network/` 目录和 `src/components/NetworkView/` 目录
+- 模拟数据带足够的随机变化让每次显示有差异
+- 速度测试运行后自动保存到 SQLite 历史
+- After all changes: npx tsc --noEmit (zero errors required)
+- Do NOT run npm install or npm run build
+- Do NOT edit node_modules or .git

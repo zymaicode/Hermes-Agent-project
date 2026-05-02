@@ -122,6 +122,15 @@ contextBridge.exposeInMainWorld('pchelper', {
   getNetworkInterfaces: () => ipcRenderer.invoke('pchelper:get-network-interfaces'),
   getNetworkTraffic: () => ipcRenderer.invoke('pchelper:get-network-traffic'),
   runSpeedTest: () => ipcRenderer.invoke('pchelper:run-speed-test'),
+  scanLanDevices: () => ipcRenderer.invoke('pchelper:scan-lan-devices'),
+  refreshLanDevices: () => ipcRenderer.invoke('pchelper:refresh-lan-devices'),
+  getDnsCache: () => ipcRenderer.invoke('pchelper:get-dns-cache'),
+  flushDnsCache: () => ipcRenderer.invoke('pchelper:flush-dns-cache'),
+  getBandwidthTop: () => ipcRenderer.invoke('pchelper:get-bandwidth-top'),
+  getSpeedTestHistory: () => ipcRenderer.invoke('pchelper:get-speed-test-history'),
+  getSpeedTestStats: () => ipcRenderer.invoke('pchelper:get-speed-test-stats'),
+  getSpeedTestTopResults: () => ipcRenderer.invoke('pchelper:get-speed-test-top-results'),
+  clearSpeedTestHistory: () => ipcRenderer.invoke('pchelper:clear-speed-test-history'),
 
   // Process Monitor
   getProcesses: () => ipcRenderer.invoke('pchelper:get-processes'),
