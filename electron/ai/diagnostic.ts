@@ -93,7 +93,10 @@ ${JSON.stringify(snapshot, null, 2)}
     const gpuTemp = snapshot.gpu?.temp ?? 0;
     const cpuTemp = snapshot.cpu?.temp ?? 0;
 
-    const score = Math.max(0, Math.round(100 - cpuUsage * 0.25 - memUsage * 0.25 - gpuUsage * 0.1 - (diskWarning ? 15 : 0) - (cpuTemp > 80 ? 10 : cpuTemp > 65 ? 5 : 0) - (gpuTemp > 80 ? 10 : gpuTemp > 65 ? 5 : 0)));
+    const cpuPenalty = cpuTemp > 80 ? 10 : cpuTemp > 65 ? 5 : 0;
+    const gpuPenalty = gpuTemp > 80 ? 10 : gpuTemp > 65 ? 5 : 0;
+    const diskPenalty = diskWarning ? 15 : 0;
+    const score = Math.max(0, Math.round(100 - cpuUsage * 0.25 - memUsage * 0.25 - gpuUsage * 0.1 - diskPenalty - cpuPenalty - gpuPenalty));
     const grade = score >= 85 ? 'excellent' : score >= 70 ? 'good' : score >= 50 ? 'fair' : score >= 30 ? 'poor' : 'critical';
 
     const sections: AiDiagnosticSection[] = [];

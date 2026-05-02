@@ -42,6 +42,7 @@ import {
   UserCircle,
   Network,
   FileCode,
+  Gamepad2,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { useConflictStore } from '../../stores/conflictStore';
@@ -87,6 +88,7 @@ const navSections: { heading: string; items: NavItem[] }[] = [
       { id: 'cleanup', label: 'Cleanup', icon: Trash2 },
       { id: 'filetypes', label: 'File Types', icon: FileType },
       { id: 'netdiag', label: 'Net Diag', icon: Network },
+      { id: 'gameOptimizer', label: 'Game Mode', icon: Gamepad2 },
     ],
   },
   {

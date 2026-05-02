@@ -89,14 +89,15 @@ export class BehaviorAnalyzer {
     let verdict: ProcessAnalysisResult['verdict'] = 'normal';
     const suggestions: string[] = [];
 
-    if (cpuHigh && !isBrowser && !isSystemProc) { verdict = 'warning'; }
-    if (cpuHigh && memHigh && !isBrowser && !isSystemProc) { verdict = 'suspicious'; }
-    if (proc.name.toLowerCase().includes('miner') || proc.name.toLowerCase().includes('crypto')) { verdict = 'critical'; }
     if (isSystemProc) { verdict = 'normal'; }
+    else if (proc.name.toLowerCase().includes('miner') || proc.name.toLowerCase().includes('crypto')) { verdict = 'critical'; }
+    else if (cpuHigh && memHigh && !isBrowser) { verdict = 'suspicious'; }
+    else if (cpuHigh && !isBrowser) { verdict = 'warning'; }
 
     if (cpuHigh) suggestions.push('CPU占用较高，建议检查是否有异常活动');
     if (memHigh) suggestions.push('内存占用较大，建议重启该进程释放资源');
-    if (!proc.path || proc.path.includes('Temp\\') || proc.path.includes('AppData\\Local\\Temp')) {
+    const p = proc.path?.toLowerCase() || '';
+    if (!proc.path || p.includes('temp\\') || p.includes('appdata\\local\\temp')) {
       suggestions.push('⚠ 进程从临时目录运行，建议扫描病毒');
     }
 

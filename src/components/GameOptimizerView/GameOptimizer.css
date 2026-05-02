@@ -1,0 +1,17 @@
+.game-optimizer { padding: 24px; max-width: 700px; margin: 0 auto; }
+.go-header { margin-bottom: 20px; }
+.go-header h2 { display: flex; align-items: center; gap: 8px; font-size: 20px; margin: 0 0 4px; color: var(--text-primary); }
+.go-subtitle { font-size: 13px; color: var(--text-secondary); margin: 0; }
+.go-status-card { display: flex; align-items: center; gap: 16px; padding: 20px; background: var(--bg-card); border-radius: var(--radius-lg); margin-bottom: 20px; }
+.go-status-icon { width: 48px; height: 48px; border-radius: 50%; border: 3px solid; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.go-status-label { font-size: 16px; font-weight: 600; }
+.go-status-detail { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+.go-section { margin-bottom: 20px; }
+.go-section h3 { display: flex; align-items: center; gap: 6px; font-size: 14px; margin: 0 0 10px; color: var(--text-primary); }
+.go-empty { font-size: 13px; color: var(--text-tertiary); padding: 12px; background: var(--bg-hover); border-radius: var(--radius); text-align: center; }
+.go-game-list { display: flex; flex-direction: column; gap: 6px; }
+.go-game-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--bg-hover); border-radius: var(--radius); font-size: 13px; }
+.go-pid { font-size: 11px; color: var(--text-tertiary); margin-left: auto; }
+.go-actions { display: flex; gap: 10px; margin-bottom: 20px; }
+.go-optimize-list { margin: 0; padding: 0 0 0 16px; font-size: 13px; color: var(--text-secondary); line-height: 2; }
+.btn:disabled { cursor: not-allowed; }

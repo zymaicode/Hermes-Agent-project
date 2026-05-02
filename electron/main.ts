@@ -61,6 +61,8 @@ import { PolicyManager } from './policy/policyManager';
 import { DeviceManager } from './external/deviceManager';
 import { getDiagnosticEngine, resetDiagnosticEngine } from './ai/aiProvider';
 import { analyzeProcess } from './ai/behaviorBridge';
+import { detectGames } from './game/gameDetector';
+import { optimizeForGaming, restoreAfterGaming, getActiveOptimization } from './game/gameOptimizer';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -350,6 +352,7 @@ function registerIpcHandlers(): void {
   );
 
   ipcMain.handle('pchelper:set-setting', (_event, key: string, value: string) => {
+    if (key.startsWith('ai_')) { resetDiagnosticEngine(); }
     setSetting(key, value);
   });
 
@@ -1335,6 +1338,25 @@ function registerIpcHandlers(): void {
     db.prepare('DELETE FROM update_history').run();
     db.prepare('DELETE FROM settings').run();
     return { success: true };
+  });
+
+  // Game Optimizer
+  ipcMain.handle('pchelper:detect-games', async () => {
+    const processes = processMonitor.getProcesses();
+    return detectGames(processes);
+  });
+
+  ipcMain.handle('pchelper:optimize-for-gaming', async () => {
+    return optimizeForGaming();
+  });
+
+  ipcMain.handle('pchelper:restore-gaming', async () => {
+    await restoreAfterGaming();
+    return true;
+  });
+
+  ipcMain.handle('pchelper:get-optimization-status', () => {
+    return getActiveOptimization();
   });
 
   // External links

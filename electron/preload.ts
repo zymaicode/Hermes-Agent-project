@@ -427,4 +427,10 @@ contextBridge.exposeInMainWorld('pchelper', {
     ipcRenderer.invoke('pchelper:external-get-controllers'),
   refreshDevices: () =>
     ipcRenderer.invoke('pchelper:external-refresh'),
+
+  // Game Optimizer
+  detectGames: () => ipcRenderer.invoke('pchelper:detect-games'),
+  optimizeForGaming: () => ipcRenderer.invoke('pchelper:optimize-for-gaming'),
+  restoreGaming: () => ipcRenderer.invoke('pchelper:restore-gaming'),
+  getOptimizationStatus: () => ipcRenderer.invoke('pchelper:get-optimization-status'),
 });

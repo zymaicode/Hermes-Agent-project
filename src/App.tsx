@@ -46,6 +46,7 @@ import AccountsView from './components/AccountsView';
 import NetDiagView from './components/NetDiagView';
 import PolicyView from './components/PolicyView';
 import ExternalDevicesView from './components/ExternalDevicesView';
+import GameOptimizerView from './components/GameOptimizerView';
 import RepairCenter from './components/RepairCenter';
 import PerfOverlay from './components/PerfOverlay';
 import TitleBar from './components/TitleBar';
@@ -150,6 +151,8 @@ function MainContent() {
       return <PolicyView />;
     case 'devices':
       return <ExternalDevicesView />;
+    case 'gameOptimizer':
+      return <GameOptimizerView />;
     default:
       return <Dashboard />;
   }
