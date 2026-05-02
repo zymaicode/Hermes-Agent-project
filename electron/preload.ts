@@ -410,6 +410,10 @@ contextBridge.exposeInMainWorld('pchelper', {
   getPolicyDetail: (id: string) =>
     ipcRenderer.invoke('pchelper:policy-get-detail', id),
 
+  // AI Process Behavior Analysis
+  analyzeProcess: (proc: { name: string; pid: number; cpu: number; memory: number; status: string; path?: string; user?: string; startTime?: string }) =>
+    ipcRenderer.invoke('pchelper:analyze-process', proc),
+
   // External Devices
   getMonitors: () =>
     ipcRenderer.invoke('pchelper:external-get-monitors'),

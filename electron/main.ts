@@ -60,6 +60,7 @@ import { testBandwidth } from './netdiag/bandwidth';
 import { PolicyManager } from './policy/policyManager';
 import { DeviceManager } from './external/deviceManager';
 import { getDiagnosticEngine, resetDiagnosticEngine } from './ai/aiProvider';
+import { analyzeProcess } from './ai/behaviorBridge';
 import type { HardwareSnapshot } from './hardware/collector';
 
 let mainWindow: BrowserWindow | null = null;
@@ -1214,6 +1215,15 @@ function registerIpcHandlers(): void {
       return { answer: '❌ 硬件数据未就绪', error: 'no_hardware_data' };
     }
     return handleOverlayAiQuery(query, snapshot, {
+      endpoint: getSetting('ai_endpoint') || 'https://api.deepseek.com',
+      model: getSetting('ai_model') || 'deepseek-chat',
+      apiKey: getSetting('ai_api_key') || '',
+    });
+  });
+
+  // AI Process Behavior Analysis
+  ipcMain.handle('pchelper:analyze-process', async (_event, proc: { name: string; pid: number; cpu: number; memory: number; status: string; path?: string; user?: string; startTime?: string }) => {
+    return analyzeProcess(proc, {
       endpoint: getSetting('ai_endpoint') || 'https://api.deepseek.com',
       model: getSetting('ai_model') || 'deepseek-chat',
       apiKey: getSetting('ai_api_key') || '',

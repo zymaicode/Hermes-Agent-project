@@ -30,6 +30,7 @@ import type { SoundScheme, SystemSound, AudioDevice } from '../../electron/sound
 import type { FontEntry } from '../../electron/fonts/manager';
 import type { MonitorInfo, AudioDeviceInfo, BluetoothDeviceEntry, PrinterEntry, GameControllerEntry } from '../../electron/external/deviceManager';
 import type { PingResult } from '../../electron/netdiag/ping';
+import type { ProcessAnalysisResult } from '../../electron/ai/behaviorAnalyzer';
 import type { TraceRouteResult } from '../../electron/netdiag/traceroute';
 import type { PortScanResult } from '../../electron/netdiag/portscanner';
 import type { DnsLookupResult } from '../../electron/netdiag/dns';
@@ -127,6 +128,7 @@ declare global {
       getProcesses: () => Promise<ProcessEntry[]>;
       killProcess: (pid: number) => Promise<{ success: boolean; message: string }>;
       getProcessDetail: (pid: number) => Promise<(ProcessEntry & { children: number[]; cpuHistory: number[]; memHistory: number[] }) | null>;
+      analyzeProcess: (proc: { name: string; pid: number; cpu: number; memory: number; status: string; path?: string; user?: string; startTime?: string }) => Promise<ProcessAnalysisResult>;
 
       // System Info
       getSystemInfo: () => Promise<SystemInfo>;

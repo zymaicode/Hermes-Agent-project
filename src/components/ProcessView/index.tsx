@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Search, Skull, ChevronDown, ChevronUp, Activity } from 'lucide-react';
+import { Search, Skull, ChevronDown, ChevronUp, Activity, Brain } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { useProcessStore } from '../../stores/processStore';
+import AIAnalysisModal from './AIAnalysisModal';
 
 const STATUS_COLORS: Record<string, string> = {
   running: 'var(--green)',
@@ -29,6 +30,10 @@ export default function ProcessView() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [killConfirm, setKillConfirm] = useState<number | null>(null);
   const [killMsg, setKillMsg] = useState<string | null>(null);
+  const [analysisTarget, setAnalysisTarget] = useState<{
+    name: string; pid: number; cpuPercent: number; memoryMB: number;
+    status?: string; path?: string; user?: string; startTime?: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchProcesses();
@@ -210,17 +215,31 @@ export default function ProcessView() {
                   <td className="text-mono" style={{ fontSize: 12 }}>{proc.threads}</td>
                   <td style={{ fontSize: 12, color: PRIORITY_COLORS[proc.priority] || 'var(--text-secondary)' }}>{proc.priority}</td>
                   <td>
-                    <button
-                      className="btn btn-sm"
-                      style={{
-                        background: killConfirm === proc.pid ? 'var(--red)' : 'transparent',
-                        borderColor: killConfirm === proc.pid ? 'var(--red)' : 'var(--border-color)',
-                        color: killConfirm === proc.pid ? '#fff' : 'var(--red)',
-                      }}
-                      onClick={() => handleKill(proc.pid, proc.name)}
-                    >
-                      <Skull size={12} />
-                    </button>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button
+                        className="btn btn-sm"
+                        style={{
+                          background: 'var(--accent)',
+                          borderColor: 'var(--accent)',
+                          color: '#fff',
+                        }}
+                        onClick={() => setAnalysisTarget(proc)}
+                        title="AI 分析"
+                      >
+                        <Brain size={12} />
+                      </button>
+                      <button
+                        className="btn btn-sm"
+                        style={{
+                          background: killConfirm === proc.pid ? 'var(--red)' : 'transparent',
+                          borderColor: killConfirm === proc.pid ? 'var(--red)' : 'var(--border-color)',
+                          color: killConfirm === proc.pid ? '#fff' : 'var(--red)',
+                        }}
+                        onClick={() => handleKill(proc.pid, proc.name)}
+                      >
+                        <Skull size={12} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -306,6 +325,8 @@ export default function ProcessView() {
           )}
         </div>
       )}
+
+      {analysisTarget && <AIAnalysisModal proc={analysisTarget} onClose={() => setAnalysisTarget(null)} />}
     </div>
   );
 }
