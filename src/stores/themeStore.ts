@@ -37,6 +37,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
 
   resetTheme: async () => {
     const defaults: ThemeConfig = await window.pchelper.getThemeDefaults();
+    await window.pchelper.saveTheme(defaults);
     const cssVars = await window.pchelper.getThemeCSSVars(defaults.colorTheme);
     set({ config: defaults, cssVars });
   },
